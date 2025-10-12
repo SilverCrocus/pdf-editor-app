@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Tuple
 
 from pikepdf import Pdf, PdfError
 
@@ -62,6 +62,66 @@ class PDFMerger:
             logger.info(
                 f"Successfully merged {len(input_files)} files to {output_path}"
             )
+
+        except PdfError as e:
+            raise PDFMergerError(f"PDF processing error: {str(e)}")
+        except Exception as e:
+            raise PDFMergerError(f"Unexpected error during merge: {str(e)}")
+
+    @staticmethod
+    def merge_pages(
+        page_list: List[Tuple[Union[str, Path], int]], output_path: Union[str, Path]
+    ) -> None:
+        """
+        Merge specific pages from multiple PDF files.
+
+        Args:
+            page_list: List of tuples (pdf_path, page_num) where page_num is 0-indexed
+            output_path: Path where the merged PDF should be saved
+
+        Raises:
+            PDFMergerError: If merging fails or files are invalid
+        """
+        if not page_list:
+            raise PDFMergerError("No pages provided")
+
+        try:
+            pdf = Pdf.new()
+            opened_pdfs = {}
+
+            for pdf_path, page_num in page_list:
+                pdf_path = Path(pdf_path)
+
+                if not pdf_path.exists():
+                    raise PDFMergerError(f"File not found: {pdf_path}")
+
+                # Open PDF if not already opened
+                pdf_key = str(pdf_path)
+                if pdf_key not in opened_pdfs:
+                    try:
+                        opened_pdfs[pdf_key] = Pdf.open(pdf_path)
+                    except PdfError as e:
+                        raise PDFMergerError(f"Failed to open {pdf_path}: {str(e)}")
+
+                src = opened_pdfs[pdf_key]
+
+                # Validate page number
+                if page_num < 0 or page_num >= len(src.pages):
+                    raise PDFMergerError(
+                        f"Invalid page number {page_num} for {pdf_path}"
+                    )
+
+                # Add the specific page
+                pdf.pages.append(src.pages[page_num])
+                logger.info(f"Added page {page_num} from {pdf_path}")
+
+            output_path = Path(output_path)
+            pdf.save(output_path)
+            logger.info(f"Successfully merged {len(page_list)} pages to {output_path}")
+
+            # Close all opened PDFs
+            for src in opened_pdfs.values():
+                src.close()
 
         except PdfError as e:
             raise PDFMergerError(f"PDF processing error: {str(e)}")

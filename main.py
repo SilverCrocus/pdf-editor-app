@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-PDF Editor Tool - Main Entry Point
+PDF Editor - Main Entry Point
 
-A lightweight desktop application for merging, annotating, and digitally signing PDFs.
+A modern desktop application for merging, annotating, and digitally signing PDFs.
+Features visual page management, interactive annotations, and digital signatures.
 """
 
 import sys
-from src.gui.main_window import main
+from src.gui.unified_window import main
 
 if __name__ == "__main__":
     sys.exit(main())

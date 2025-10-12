@@ -247,6 +247,37 @@ class PDFAnnotator:
         except Exception as e:
             raise PDFAnnotatorError(f"Failed to add freehand text: {str(e)}")
 
+    def add_batch_annotations(self, annotations: list) -> None:
+        """
+        Add multiple annotations at once.
+
+        Args:
+            annotations: List of annotation dictionaries with keys:
+                        - type: 'text' for freehand text
+                        - page_num: Page number (0-indexed)
+                        - x, y: Position coordinates
+                        - text: Text content
+                        - font_size: Font size (optional, default 11)
+                        - color: RGB color tuple (optional, default black)
+        """
+        try:
+            for annot in annotations:
+                annot_type = annot.get("type", "text")
+                page_num = annot["page_num"]
+                x = annot["x"]
+                y = annot["y"]
+                text = annot["text"]
+                font_size = annot.get("font_size", 11)
+                color = annot.get("color", (0, 0, 0))
+
+                if annot_type == "text":
+                    self.add_freehand_text(page_num, (x, y), text, font_size, color)
+
+            logger.info(f"Added {len(annotations)} annotations in batch")
+
+        except Exception as e:
+            raise PDFAnnotatorError(f"Failed to add batch annotations: {str(e)}")
+
     def save(self, output_path: Union[str, Path]) -> None:
         """
         Save the annotated PDF to a file.
