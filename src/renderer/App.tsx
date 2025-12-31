@@ -40,6 +40,39 @@ export default function App() {
     }
   }, [])
 
+  const handleReorder = useCallback((oldIndex: number, newIndex: number) => {
+    setPages(prev => {
+      const newPages = [...prev]
+      const [moved] = newPages.splice(oldIndex, 1)
+      newPages.splice(newIndex, 0, moved)
+      return newPages
+    })
+    // Adjust selection if needed
+    if (selectedPageIndex === oldIndex) {
+      setSelectedPageIndex(newIndex)
+    } else if (oldIndex < selectedPageIndex && newIndex >= selectedPageIndex) {
+      setSelectedPageIndex(prev => prev - 1)
+    } else if (oldIndex > selectedPageIndex && newIndex <= selectedPageIndex) {
+      setSelectedPageIndex(prev => prev + 1)
+    }
+  }, [selectedPageIndex])
+
+  const handleDeletePage = useCallback((index: number) => {
+    setPages(prev => prev.filter((_, i) => i !== index))
+    if (selectedPageIndex >= index && selectedPageIndex > 0) {
+      setSelectedPageIndex(prev => prev - 1)
+    }
+  }, [selectedPageIndex])
+
+  const handleDuplicatePage = useCallback((index: number) => {
+    setPages(prev => {
+      const newPages = [...prev]
+      const duplicate = { ...prev[index] }
+      newPages.splice(index + 1, 0, duplicate)
+      return newPages
+    })
+  }, [])
+
   // Get current page info for viewer
   const currentPage = pages[selectedPageIndex]
 
@@ -59,6 +92,9 @@ export default function App() {
           pages={pages}
           selectedPageIndex={selectedPageIndex}
           onPageSelect={setSelectedPageIndex}
+          onReorder={handleReorder}
+          onDeletePage={handleDeletePage}
+          onDuplicatePage={handleDuplicatePage}
         />
         <MainViewer
           documentId={currentPage?.documentId || null}

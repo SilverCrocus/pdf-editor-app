@@ -10,7 +10,15 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@test/*": ["src/test/*"],
+      "@components/*": ["src/renderer/components/*"],
+      "@services/*": ["src/renderer/services/*"],
+      "@types/*": ["src/renderer/types/*"]
+    }
   },
   "include": ["src"]
 }
