@@ -152,9 +152,15 @@ All annotations remain movable and editable until the document is saved.
 | Ctrl+Shift+S | Save As |
 | Ctrl+Z | Undo |
 | Ctrl+Y | Redo |
-| Delete | Delete selected page or annotation |
+| Delete / Backspace | Delete selected page or annotation |
 | Escape | Deselect tool / cancel current action |
-| ↑/↓ | Navigate pages (when sidebar focused) |
+| ↑/↓ | Navigate pages |
+| Ctrl+↑ / Home | Go to first page |
+| Ctrl+↓ / End | Go to last page |
+| Ctrl+D | Duplicate selected page |
+| Ctrl+=/+ | Zoom in |
+| Ctrl+- | Zoom out |
+| Ctrl+0 | Reset zoom to 100% |
 | Ctrl+Mouse Wheel | Zoom in/out |
 
 ## Undo/Redo
@@ -218,15 +224,16 @@ src/
 - [x] Right-click context menu (Delete, Duplicate)
 - [x] Click-and-drag panning in main viewer
 - [x] Multi-document support (open multiple PDFs)
+- [x] Toolbar component with file operation buttons
+- [x] Zoom dropdown with preset levels (50%-300%)
+- [x] Keyboard shortcuts (Ctrl+O, Ctrl+D, Arrow keys, Delete, etc.)
 
 ### In Progress
-- [ ] Toolbar enhancements
 - [ ] Annotation tools
 
 ### Planned
 - [ ] Save/Save As with pdf-lib
 - [ ] Undo/Redo
-- [ ] Keyboard shortcuts
 - [ ] PDF merging export
 
 ## Development

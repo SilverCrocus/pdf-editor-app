@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import Toolbar from './components/Toolbar'
 import Sidebar from './components/Sidebar'
 import MainViewer from './components/MainViewer'
 import { loadPdfDocument } from './services/pdfRenderer'
@@ -59,11 +60,15 @@ export default function App() {
   }, [selectedPageIndex])
 
   const handleDeletePage = useCallback((index: number) => {
-    setPages(prev => prev.filter((_, i) => i !== index))
-    if (selectedPageIndex >= index && selectedPageIndex > 0) {
-      setSelectedPageIndex(prev => prev - 1)
-    }
-  }, [selectedPageIndex])
+    setPages(prev => {
+      if (prev.length <= 1) return prev // Don't delete last page
+      return prev.filter((_, i) => i !== index)
+    })
+    setSelectedPageIndex(prev => {
+      if (prev >= index && prev > 0) return prev - 1
+      return prev
+    })
+  }, [])
 
   const handleDuplicatePage = useCallback((index: number) => {
     setPages(prev => {
@@ -74,19 +79,114 @@ export default function App() {
     })
   }, [])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + O: Open files
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault()
+        handleOpenFiles()
+        return
+      }
+
+      // Ctrl/Cmd + Plus: Zoom in
+      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault()
+        setZoom(z => Math.min(3, z + 0.25))
+        return
+      }
+
+      // Ctrl/Cmd + Minus: Zoom out
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault()
+        setZoom(z => Math.max(0.25, z - 0.25))
+        return
+      }
+
+      // Ctrl/Cmd + 0: Reset zoom
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault()
+        setZoom(1)
+        return
+      }
+
+      // Page navigation with arrow keys (when not in input)
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      // Ctrl/Cmd + Arrow Up: First page
+      if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp' && pages.length > 0) {
+        e.preventDefault()
+        setSelectedPageIndex(0)
+        return
+      }
+
+      // Ctrl/Cmd + Arrow Down: Last page
+      if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown' && pages.length > 0) {
+        e.preventDefault()
+        setSelectedPageIndex(pages.length - 1)
+        return
+      }
+
+      // Arrow Up: Previous page
+      if (e.key === 'ArrowUp' && pages.length > 0) {
+        e.preventDefault()
+        setSelectedPageIndex(prev => Math.max(0, prev - 1))
+        return
+      }
+
+      // Arrow Down: Next page
+      if (e.key === 'ArrowDown' && pages.length > 0) {
+        e.preventDefault()
+        setSelectedPageIndex(prev => Math.min(pages.length - 1, prev + 1))
+        return
+      }
+
+      // Home: First page
+      if (e.key === 'Home' && pages.length > 0) {
+        e.preventDefault()
+        setSelectedPageIndex(0)
+        return
+      }
+
+      // End: Last page
+      if (e.key === 'End' && pages.length > 0) {
+        e.preventDefault()
+        setSelectedPageIndex(pages.length - 1)
+        return
+      }
+
+      // Delete or Backspace: Delete selected page
+      if ((e.key === 'Delete' || e.key === 'Backspace') && pages.length > 1) {
+        e.preventDefault()
+        handleDeletePage(selectedPageIndex)
+        return
+      }
+
+      // Ctrl/Cmd + D: Duplicate selected page
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd' && pages.length > 0) {
+        e.preventDefault()
+        handleDuplicatePage(selectedPageIndex)
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleOpenFiles, handleDeletePage, handleDuplicatePage, pages.length, selectedPageIndex])
+
   // Get current page info for viewer
   const currentPage = pages[selectedPageIndex]
 
   return (
     <div className="app">
-      <div className="toolbar">
-        <button onClick={handleOpenFiles}>Open PDF</button>
-        <span className="zoom-controls">
-          <button onClick={() => setZoom(z => Math.max(0.25, z - 0.25))}>−</button>
-          <span>{Math.round(zoom * 100)}%</span>
-          <button onClick={() => setZoom(z => Math.min(3, z + 0.25))}>+</button>
-        </span>
-      </div>
+      <Toolbar
+        hasDocuments={documents.length > 0}
+        zoom={zoom}
+        onOpenFiles={handleOpenFiles}
+        onZoomChange={setZoom}
+      />
       <div className="main-content">
         <Sidebar
           documents={documents}
