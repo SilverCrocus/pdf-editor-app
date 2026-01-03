@@ -39,6 +39,8 @@
 
 .annotation.text.editing {
   padding: 0;
+  outline: none;
+  background-color: transparent;
 }
 
 .text-edit-input {
@@ -50,8 +52,8 @@
   outline: none;
   padding: 2px 4px;
   text-align: left;
-  resize: none;
-  overflow: hidden;
+  resize: horizontal;
+  overflow: auto;
   line-height: 1.2;
   field-sizing: content;
 }

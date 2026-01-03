@@ -97,6 +97,7 @@ export default function AnnotationLayer({
     }
   }, [isPlaceholderText, editingTextId])
 
+
   // Convert pixel coordinates to normalized (0-1) coordinates
   const toNormalized = useCallback((pixelX: number, pixelY: number) => ({
     x: pixelX / canvasWidth,
@@ -184,6 +185,10 @@ export default function AnnotationLayer({
       const clickedTextAnnotation = findAnnotationAt(pos, 'text')
 
       if (clickedTextAnnotation) {
+        // If already editing this annotation, don't reset the content
+        if (clickedTextAnnotation.id === editingTextId) {
+          return
+        }
         // Edit existing text annotation
         onSelectAnnotation(clickedTextAnnotation.id)
         setEditingTextId(clickedTextAnnotation.id)
@@ -195,9 +200,13 @@ export default function AnnotationLayer({
       // If currently editing a text annotation and clicked away, just finish the edit
       // (don't create a new text box)
       if (editingTextId) {
-        // Save the current text and exit edit mode
+        // Save the current text and width, then exit edit mode
         if (editingContent.trim()) {
-          onUpdateAnnotation(editingTextId, { content: editingContent })
+          const updates: { content: string; width?: number } = { content: editingContent }
+          if (textareaRef.current) {
+            updates.width = textareaRef.current.offsetWidth / canvasWidth
+          }
+          onUpdateAnnotation(editingTextId, updates)
         }
         setEditingTextId(null)
         setEditingContent('')
@@ -358,7 +367,7 @@ export default function AnnotationLayer({
     setIsPlaceholderText(false) // Not a placeholder when editing existing
   }, [])
 
-  // Finish editing text annotation (save content)
+  // Finish editing text annotation (save content and size)
   const finishTextEdit = useCallback(() => {
     // Ignore spurious blur events that happen immediately after starting to edit
     if (justStartedEditing.current) {
@@ -366,7 +375,13 @@ export default function AnnotationLayer({
       return
     }
     if (editingTextId && editingContent.trim()) {
-      onUpdateAnnotation(editingTextId, { content: editingContent })
+      // Capture resized width if textarea was resized
+      const updates: { content: string; width?: number } = { content: editingContent }
+      if (textareaRef.current) {
+        const newWidth = textareaRef.current.offsetWidth / canvasWidth
+        updates.width = newWidth
+      }
+      onUpdateAnnotation(editingTextId, updates)
     }
     // Don't delete empty annotations on blur - they're invisible anyway
     // User can press Escape to delete, or they'll be cleaned up on save
@@ -374,7 +389,7 @@ export default function AnnotationLayer({
     setEditingContent('')
     setIsPlaceholderText(false)
     setPendingTextAnnotation(null)
-  }, [editingTextId, editingContent, onUpdateAnnotation])
+  }, [editingTextId, editingContent, canvasWidth, onUpdateAnnotation])
 
   // Cancel editing (keep annotation even if empty)
   const cancelTextEdit = useCallback(() => {
@@ -460,6 +475,8 @@ export default function AnnotationLayer({
             className={`annotation text ${isSelected ? 'selected' : ''} ${isEditing ? 'editing' : ''}`}
             style={{
               ...baseStyle,
+              // Let parent grow with textarea when editing
+              ...(isEditing ? { height: 'auto', width: 'auto' } : {}),
               fontFamily: annotation.font,
               fontSize: annotation.fontSize * zoom,
               color: annotation.color,
@@ -489,7 +506,8 @@ export default function AnnotationLayer({
                 style={{
                   fontFamily: annotation.font,
                   fontSize: annotation.fontSize * zoom,
-                  color: annotation.color
+                  color: annotation.color,
+                  width: annotation.width * canvasWidth
                 }}
               />
             ) : (
