@@ -508,6 +508,7 @@ export default function App() {
           textSize={toolSettings.textSize}
           onAddAnnotation={wrappedAddAnnotation}
           onUpdateAnnotation={wrappedUpdateAnnotation}
+          onDeleteAnnotation={wrappedDeleteAnnotation}
           onSelectAnnotation={selectAnnotation}
         />
       </div>

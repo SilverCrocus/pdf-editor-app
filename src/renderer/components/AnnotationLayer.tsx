@@ -32,6 +32,7 @@ interface AnnotationLayerProps {
   // Callbacks
   onAddAnnotation: (annotation: Annotation) => void
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void
+  onDeleteAnnotation: (id: string) => void
   onSelectAnnotation: (id: string | null) => void
 }
 
@@ -61,6 +62,7 @@ export default function AnnotationLayer({
   textSize,
   onAddAnnotation,
   onUpdateAnnotation,
+  onDeleteAnnotation,
   onSelectAnnotation
 }: AnnotationLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null)
@@ -222,10 +224,26 @@ export default function AnnotationLayer({
         if (clickedTextAnnotation.id === editingTextId) {
           return
         }
+        // If editing a different annotation, save or delete it first
+        if (editingTextId) {
+          const shouldDelete = !editingContent.trim() || isPlaceholderText
+          if (!shouldDelete) {
+            const updates: { content: string; width?: number; height?: number } = { content: editingContent }
+            if (textareaRef.current) {
+              updates.width = textareaRef.current.offsetWidth / canvasWidth
+              updates.height = textareaRef.current.offsetHeight / canvasHeight
+            }
+            onUpdateAnnotation(editingTextId, updates)
+          } else {
+            onDeleteAnnotation(editingTextId)
+          }
+          setTextareaWidth(null)
+        }
         // Edit existing text annotation
         onSelectAnnotation(clickedTextAnnotation.id)
         setEditingTextId(clickedTextAnnotation.id)
         setEditingContent(clickedTextAnnotation.type === 'text' ? clickedTextAnnotation.content : '')
+        setIsPlaceholderText(false)
         justStartedEditing.current = true
         return
       }
@@ -234,13 +252,17 @@ export default function AnnotationLayer({
       // (don't create a new text box)
       if (editingTextId) {
         // Save the current text, width, and height, then exit edit mode
-        if (editingContent.trim()) {
+        const shouldDelete = !editingContent.trim() || isPlaceholderText
+        if (!shouldDelete) {
           const updates: { content: string; width?: number; height?: number } = { content: editingContent }
           if (textareaRef.current) {
             updates.width = textareaRef.current.offsetWidth / canvasWidth
             updates.height = textareaRef.current.offsetHeight / canvasHeight
           }
           onUpdateAnnotation(editingTextId, updates)
+        } else {
+          // Delete empty text annotations
+          onDeleteAnnotation(editingTextId)
         }
         setEditingTextId(null)
         setEditingContent('')
@@ -412,28 +434,32 @@ export default function AnnotationLayer({
     // Don't finish if currently resizing
     if (resizing) return
 
-    if (editingTextId && editingContent.trim()) {
-      // Capture resized width and actual height
-      const updates: { content: string; width?: number; height?: number } = { content: editingContent }
-      if (textareaWidth !== null) {
-        updates.width = textareaWidth / canvasWidth
-      } else if (textareaRef.current) {
-        updates.width = textareaRef.current.offsetWidth / canvasWidth
+    if (editingTextId) {
+      const shouldDelete = !editingContent.trim() || isPlaceholderText
+      if (!shouldDelete) {
+        // Capture resized width and actual height
+        const updates: { content: string; width?: number; height?: number } = { content: editingContent }
+        if (textareaWidth !== null) {
+          updates.width = textareaWidth / canvasWidth
+        } else if (textareaRef.current) {
+          updates.width = textareaRef.current.offsetWidth / canvasWidth
+        }
+        // Save actual rendered height so selection area matches text
+        if (textareaRef.current) {
+          updates.height = textareaRef.current.offsetHeight / canvasHeight
+        }
+        onUpdateAnnotation(editingTextId, updates)
+      } else {
+        // Delete empty text annotations
+        onDeleteAnnotation(editingTextId)
       }
-      // Save actual rendered height so selection area matches text
-      if (textareaRef.current) {
-        updates.height = textareaRef.current.offsetHeight / canvasHeight
-      }
-      onUpdateAnnotation(editingTextId, updates)
     }
-    // Don't delete empty annotations on blur - they're invisible anyway
-    // User can press Escape to delete, or they'll be cleaned up on save
     setEditingTextId(null)
     setEditingContent('')
     setIsPlaceholderText(false)
     setPendingTextAnnotation(null)
     setTextareaWidth(null)
-  }, [editingTextId, editingContent, canvasWidth, onUpdateAnnotation, resizing, textareaWidth])
+  }, [editingTextId, editingContent, isPlaceholderText, canvasWidth, canvasHeight, onUpdateAnnotation, onDeleteAnnotation, resizing, textareaWidth])
 
   // Start custom resize
   const startResize = useCallback((e: React.MouseEvent) => {

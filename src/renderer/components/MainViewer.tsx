@@ -23,6 +23,7 @@ interface MainViewerProps {
   textSize: number
   onAddAnnotation: (annotation: Annotation) => void
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void
+  onDeleteAnnotation: (id: string) => void
   onSelectAnnotation: (id: string | null) => void
 }
 
@@ -44,6 +45,7 @@ export default function MainViewer({
   textSize,
   onAddAnnotation,
   onUpdateAnnotation,
+  onDeleteAnnotation,
   onSelectAnnotation
 }: MainViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -173,6 +175,7 @@ export default function MainViewer({
               textSize={textSize}
               onAddAnnotation={onAddAnnotation}
               onUpdateAnnotation={onUpdateAnnotation}
+              onDeleteAnnotation={onDeleteAnnotation}
               onSelectAnnotation={onSelectAnnotation}
             />
           )}
