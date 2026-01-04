@@ -55,7 +55,7 @@ All annotations can be selected, moved, and resized. Click to select, drag to mo
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Toolbar                                                │
-│  [Open] [Save] [SaveAs] | [Highlight▼] [Underline]     │
+│  [Open] [Close] [Save] [SaveAs] | [Highlight▼] [...]   │
 │  [Strikethrough] [Box] [Text] | [Zoom: 100%▼] [+] [-]  │
 ├────────────┬────────────────────────────────────────────┤
 │  Sidebar   │  Main Viewer                              │
@@ -128,6 +128,13 @@ All annotations can be selected, moved, and resized. Click to select, drag to mo
 - Native file dialog with `.pdf` filter
 - Multi-select supported to open multiple PDFs at once
 
+### Closing
+- Close button or Ctrl+W
+- Closes current document(s) without quitting the app
+- Prompts to save if there are unsaved changes
+- Clears all pages, annotations, and history
+- Returns to empty state ready to open a new document
+
 ### Saving
 - **Save (Ctrl+S):** Overwrites current file
   - First save shows warning: "This will overwrite the original file. Continue?"
@@ -149,6 +156,7 @@ Note: Annotations are not yet baked into the saved PDF (planned feature).
 | Shortcut | Action |
 |----------|--------|
 | Ctrl+O | Open PDF(s) |
+| Ctrl+W | Close document |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save As |
 | Ctrl+Z | Undo |

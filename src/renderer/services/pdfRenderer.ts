@@ -65,3 +65,10 @@ export function unloadDocument(id: string): void {
     documentCache.delete(id)
   }
 }
+
+export function clearAllDocuments(): void {
+  for (const pdf of documentCache.values()) {
+    pdf.destroy()
+  }
+  documentCache.clear()
+}

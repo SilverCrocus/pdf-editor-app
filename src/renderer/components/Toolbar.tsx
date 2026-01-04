@@ -49,6 +49,7 @@ interface ToolbarProps {
   canUndo: boolean
   canRedo: boolean
   onOpenFiles: () => void
+  onCloseDocument: () => void
   onSave: () => void
   onSaveAs: () => void
   onZoomChange: (zoom: number) => void
@@ -76,6 +77,7 @@ export default function Toolbar({
   canUndo,
   canRedo,
   onOpenFiles,
+  onCloseDocument,
   onSave,
   onSaveAs,
   onZoomChange,
@@ -150,6 +152,13 @@ export default function Toolbar({
       <div className="toolbar-section">
         <button onClick={onOpenFiles} title="Open PDF (Ctrl+O)">
           Open
+        </button>
+        <button
+          onClick={onCloseDocument}
+          disabled={!hasDocuments}
+          title="Close document (Ctrl+W)"
+        >
+          Close
         </button>
         <button
           onClick={onSave}

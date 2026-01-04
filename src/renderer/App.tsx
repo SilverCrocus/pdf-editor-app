@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import Toolbar from './components/Toolbar'
 import Sidebar from './components/Sidebar'
 import MainViewer from './components/MainViewer'
-import { loadPdfDocument } from './services/pdfRenderer'
-import { loadPdfForManipulation, saveAsNewFile, saveToFile } from './services/pdfManipulator'
+import { loadPdfDocument, clearAllDocuments } from './services/pdfRenderer'
+import { loadPdfForManipulation, saveAsNewFile, saveToFile, clearAllPdfCache } from './services/pdfManipulator'
 import { useAnnotations } from './hooks/useAnnotations'
 import type { PdfDocument, PdfPage } from './types/pdf'
 import './index.css'
@@ -106,6 +106,34 @@ export default function App() {
       console.error('Error opening PDF:', error)
     }
   }, [documents.length])
+
+  const handleCloseDocument = useCallback(() => {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to close?'
+      )
+      if (!confirmed) return
+    }
+
+    // Clear all caches
+    clearAllDocuments()
+    clearAllPdfCache()
+
+    // Reset all state
+    setDocuments([])
+    setPages([])
+    setSelectedPageIndex(0)
+    setZoom(1.0)
+    setHasUnsavedChanges(false)
+    setCurrentFilePath(null)
+    setShowSaveWarning(false)
+    setHistoryStack([])
+    setFutureStack([])
+    initialPagesRef.current = ''
+
+    // Discard all annotations
+    discardAllAnnotations()
+  }, [hasUnsavedChanges, discardAllAnnotations])
 
   // Check for changes whenever pages update
   useEffect(() => {
@@ -302,6 +330,13 @@ export default function App() {
         return
       }
 
+      // Ctrl/Cmd + W: Close document
+      if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+        e.preventDefault()
+        handleCloseDocument()
+        return
+      }
+
       // Ctrl/Cmd + S: Save
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
         e.preventDefault()
@@ -423,7 +458,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleOpenFiles, handleSave, handleSaveAs, handleDeletePage, handleDuplicatePage, pages.length, selectedPageIndex, selectedAnnotationId, wrappedDeleteAnnotation, unifiedUndo, unifiedRedo])
+  }, [handleOpenFiles, handleCloseDocument, handleSave, handleSaveAs, handleDeletePage, handleDuplicatePage, pages.length, selectedPageIndex, selectedAnnotationId, wrappedDeleteAnnotation, unifiedUndo, unifiedRedo])
 
   // Get current page info for viewer
   const currentPage = pages[selectedPageIndex]
@@ -468,6 +503,7 @@ export default function App() {
         canUndo={combinedCanUndo}
         canRedo={combinedCanRedo}
         onOpenFiles={handleOpenFiles}
+        onCloseDocument={handleCloseDocument}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onZoomChange={setZoom}

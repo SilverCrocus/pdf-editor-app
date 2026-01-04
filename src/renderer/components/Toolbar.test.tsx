@@ -10,6 +10,7 @@ const defaultProps = {
   currentTool: 'select' as const,
   highlightColor: 'yellow' as const,
   onOpenFiles: vi.fn(),
+  onCloseDocument: vi.fn(),
   onSave: vi.fn(),
   onSaveAs: vi.fn(),
   onZoomChange: vi.fn(),
@@ -32,6 +33,31 @@ describe('Toolbar', () => {
 
       await user.click(screen.getByText('Open'))
       expect(onOpenFiles).toHaveBeenCalled()
+    })
+
+    it('renders Close button', () => {
+      renderWithProviders(<Toolbar {...defaultProps} />)
+      expect(screen.getByText('Close')).toBeInTheDocument()
+    })
+
+    it('disables Close button when no documents', () => {
+      renderWithProviders(<Toolbar {...defaultProps} hasDocuments={false} />)
+      expect(screen.getByText('Close')).toBeDisabled()
+    })
+
+    it('enables Close button when documents exist', () => {
+      renderWithProviders(<Toolbar {...defaultProps} hasDocuments={true} />)
+      expect(screen.getByText('Close')).not.toBeDisabled()
+    })
+
+    it('calls onCloseDocument when Close clicked', async () => {
+      const onCloseDocument = vi.fn()
+      const { user } = renderWithProviders(
+        <Toolbar {...defaultProps} hasDocuments={true} onCloseDocument={onCloseDocument} />
+      )
+
+      await user.click(screen.getByText('Close'))
+      expect(onCloseDocument).toHaveBeenCalled()
     })
 
     it('disables Save buttons when no documents', () => {
