@@ -157,13 +157,22 @@ export default function MainViewer({
             ref={canvasRef}
             style={{ display: hasContent ? 'block' : 'none' }}
           />
-          {hasContent && documentId && canvasDimensions.width > 0 && (
+          {hasContent && documentId && pageId && canvasDimensions.width > 0 && (
             <TextLayer
               documentId={documentId}
+              pageId={pageId}
               pageIndex={pageIndex}
               width={canvasDimensions.width}
               height={canvasDimensions.height}
               scale={zoom}
+              currentTool={currentTool}
+              highlightColor={highlightColor}
+              lineColor={lineColor}
+              annotations={annotations}
+              onAddAnnotation={onAddAnnotation}
+              onUpdateAnnotation={onUpdateAnnotation}
+              onSelectAnnotation={onSelectAnnotation}
+              debug={false}
             />
           )}
           {hasContent && pageId && canvasDimensions.width > 0 && (

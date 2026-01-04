@@ -4,17 +4,28 @@
   top: 0;
   left: 0;
   z-index: 2;
-  pointer-events: none; /* Allow clicks to pass through to canvas/annotation layer */
+  pointer-events: none;
+}
+
+/* Enable pointer events when text tool is active */
+.text-layer.text-tool-active {
+  pointer-events: auto;
+  cursor: text;
 }
 
 /* Individual text boxes - invisible by default */
 .text-box {
   position: absolute;
-  pointer-events: auto; /* Enable selection on text boxes */
 }
 
 /* Debug mode - show yellow semi-transparent boxes */
 .text-layer.debug .text-box {
   background: rgba(255, 255, 0, 0.3);
   border: 1px solid rgba(255, 200, 0, 0.5);
+}
+
+/* Selection preview - shown while dragging */
+.selection-preview {
+  position: absolute;
+  pointer-events: none;
 }

@@ -689,10 +689,13 @@ export default function AnnotationLayer({
     }
   }
 
+  // Text tools (highlight, underline, strikethrough) are handled by TextLayer
+  const isTextTool = currentTool === 'highlight' || currentTool === 'underline' || currentTool === 'strikethrough'
+
   return (
     <div
       ref={layerRef}
-      className="annotation-layer"
+      className={`annotation-layer ${isTextTool ? 'text-tool-active' : ''}`}
       style={{
         width: canvasWidth,
         height: canvasHeight,

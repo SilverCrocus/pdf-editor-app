@@ -5,6 +5,11 @@
   z-index: 10;
 }
 
+/* Let TextLayer handle mouse events when text tools are active */
+.annotation-layer.text-tool-active {
+  pointer-events: none;
+}
+
 .annotation {
   box-sizing: border-box;
 }
