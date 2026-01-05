@@ -14,12 +14,14 @@ const defaultProps = {
   highlightColor: 'yellow' as const,
   lineColor: '#ff0000',
   boxColor: '#ff0000',
+  boxFillColor: 'transparent',
   boxThickness: 'medium' as const,
   textColor: '#000000',
   textFont: 'Arial' as const,
   textSize: 12,
   onAddAnnotation: vi.fn(),
   onUpdateAnnotation: vi.fn(),
+  onDeleteAnnotation: vi.fn(),
   onSelectAnnotation: vi.fn()
 }
 
@@ -46,6 +48,7 @@ const createBox = (overrides = {}): BoxAnnotation => ({
   width: 0.2,
   height: 0.2,
   color: '#ff0000',
+  fillColor: 'transparent',
   thickness: 'medium',
   ...overrides
 })
@@ -499,6 +502,65 @@ describe('AnnotationLayer', () => {
       fireEvent.mouseUp(layer)
 
       expect(onAddAnnotation).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Box Resize Handle', () => {
+    it('shows resize handle when box is selected', () => {
+      const box = createBox({ id: 'selected-box' })
+      const { container } = renderWithProviders(
+        <AnnotationLayer
+          {...defaultProps}
+          annotations={[box]}
+          selectedAnnotationId="selected-box"
+          currentTool="select"
+        />
+      )
+
+      const resizeHandle = container.querySelector('.box-resize-handle')
+      expect(resizeHandle).toBeInTheDocument()
+    })
+
+    it('shows resize handle when box tool is active', () => {
+      const box = createBox()
+      const { container } = renderWithProviders(
+        <AnnotationLayer
+          {...defaultProps}
+          annotations={[box]}
+          currentTool="box"
+        />
+      )
+
+      const resizeHandle = container.querySelector('.box-resize-handle')
+      expect(resizeHandle).toBeInTheDocument()
+    })
+
+    it('does not show resize handle when box is not selected and different tool active', () => {
+      const box = createBox()
+      const { container } = renderWithProviders(
+        <AnnotationLayer
+          {...defaultProps}
+          annotations={[box]}
+          currentTool="highlight"
+        />
+      )
+
+      const resizeHandle = container.querySelector('.box-resize-handle')
+      expect(resizeHandle).not.toBeInTheDocument()
+    })
+
+    it('box has pointer events enabled when resize handle is visible', () => {
+      const box = createBox()
+      const { container } = renderWithProviders(
+        <AnnotationLayer
+          {...defaultProps}
+          annotations={[box]}
+          currentTool="box"
+        />
+      )
+
+      const annotation = container.querySelector('.annotation.box')
+      expect(annotation).toHaveStyle({ pointerEvents: 'auto' })
     })
   })
 })

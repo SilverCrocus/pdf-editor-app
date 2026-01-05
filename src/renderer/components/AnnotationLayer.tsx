@@ -77,9 +77,18 @@ export default function AnnotationLayer({
   const justStartedEditing = useRef(false)
   // Track the textarea ref for selecting placeholder text
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  // Track custom resize state
+  // Track custom resize state for text annotations
   const [resizing, setResizing] = useState<{ startX: number; startWidth: number } | null>(null)
   const [textareaWidth, setTextareaWidth] = useState<number | null>(null)
+  // Track resize state for box annotations
+  const [boxResizing, setBoxResizing] = useState<{
+    id: string
+    startX: number
+    startY: number
+    startWidth: number
+    startHeight: number
+    aspectRatio: number
+  } | null>(null)
 
   // Clear pending annotation once it appears in the annotations array
   useEffect(() => {
@@ -131,6 +140,50 @@ export default function AnnotationLayer({
       document.removeEventListener('mouseup', handleMouseUp)
     }
   }, [resizing])
+
+  // Handle box resize mouse move and mouse up on document
+  useEffect(() => {
+    if (!boxResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - boxResizing.startX
+      const deltaY = e.clientY - boxResizing.startY
+      let newWidth = Math.max(20, boxResizing.startWidth + deltaX)
+      let newHeight = Math.max(20, boxResizing.startHeight + deltaY)
+
+      // Hold shift to maintain aspect ratio
+      if (e.shiftKey) {
+        // Use the larger delta to determine size, maintain aspect ratio
+        const widthRatio = newWidth / boxResizing.startWidth
+        const heightRatio = newHeight / boxResizing.startHeight
+        if (widthRatio > heightRatio) {
+          newHeight = newWidth / boxResizing.aspectRatio
+        } else {
+          newWidth = newHeight * boxResizing.aspectRatio
+        }
+        // Ensure minimums are still respected
+        newWidth = Math.max(20, newWidth)
+        newHeight = Math.max(20, newHeight)
+      }
+
+      onUpdateAnnotation(boxResizing.id, {
+        width: newWidth / canvasWidth,
+        height: newHeight / canvasHeight
+      })
+    }
+
+    const handleMouseUp = () => {
+      setBoxResizing(null)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [boxResizing, canvasWidth, canvasHeight, onUpdateAnnotation])
 
 
   // Convert pixel coordinates to normalized (0-1) coordinates
@@ -470,13 +523,29 @@ export default function AnnotationLayer({
     setTextareaWidth(null)
   }, [editingTextId, editingContent, isPlaceholderText, canvasWidth, canvasHeight, onUpdateAnnotation, onDeleteAnnotation, resizing, textareaWidth])
 
-  // Start custom resize
+  // Start custom resize for text
   const startResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     const currentWidth = textareaWidth ?? (textareaRef.current?.offsetWidth || 150)
     setResizing({ startX: e.clientX, startWidth: currentWidth })
   }, [textareaWidth])
+
+  // Start resize for box annotation
+  const startBoxResize = useCallback((e: React.MouseEvent, annotation: Annotation) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startWidth = annotation.width * canvasWidth
+    const startHeight = annotation.height * canvasHeight
+    setBoxResizing({
+      id: annotation.id,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth,
+      startHeight,
+      aspectRatio: startWidth / startHeight
+    })
+  }, [canvasWidth, canvasHeight])
 
   // Cancel editing (keep annotation even if empty)
   const cancelTextEdit = useCallback(() => {
@@ -565,7 +634,8 @@ export default function AnnotationLayer({
         )
       }
 
-      case 'box':
+      case 'box': {
+        const showResizeHandle = isSelected || currentTool === 'box'
         return (
           <div
             key={annotation.id}
@@ -573,10 +643,20 @@ export default function AnnotationLayer({
             style={{
               ...baseStyle,
               border: `${BOX_THICKNESS_PX[annotation.thickness]}px solid ${annotation.color}`,
-              backgroundColor: annotation.fillColor
+              backgroundColor: annotation.fillColor,
+              // Allow pointer events on box when resize handle is visible
+              pointerEvents: showResizeHandle ? 'auto' : baseStyle.pointerEvents
             }}
-          />
+          >
+            {showResizeHandle && (
+              <div
+                className="box-resize-handle"
+                onMouseDown={(e) => startBoxResize(e, annotation)}
+              />
+            )}
+          </div>
         )
+      }
 
       case 'text':
         const isEditing = annotation.id === editingTextId

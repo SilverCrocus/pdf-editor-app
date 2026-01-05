@@ -48,7 +48,11 @@ A desktop application for viewing PDFs, reordering pages, merging multiple docum
 - Clear/eraser option in color picker removes annotations of that type
 - Partial erasing: selecting part of a merged annotation shrinks or splits it
 
-**Box and Text annotations** can be selected, moved, and resized. Click to select, drag to move, use corner handles to resize.
+**Box and Text annotations** can be selected, moved, and resized:
+- Click to select, drag to move
+- Use the bottom-right resize handle to resize
+- Hold Shift while resizing to maintain aspect ratio
+- Box resize handle is visible when selected or when the box tool is active
 
 ### Text Fonts (7 formal options)
 1. Arial - sans-serif, clean
@@ -184,6 +188,7 @@ Note: Annotations are not yet baked into the saved PDF (planned feature).
 | Ctrl+- | Zoom out |
 | Ctrl+0 | Reset zoom to 100% |
 | Ctrl+Mouse Wheel | Zoom in/out |
+| Shift+Drag resize handle | Maintain aspect ratio while resizing |
 
 ## Undo/Redo
 
