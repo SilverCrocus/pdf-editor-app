@@ -487,7 +487,7 @@ export default function AnnotationLayer({
   }, [])
 
   // Finish editing text annotation (save content and size)
-  const finishTextEdit = useCallback(() => {
+  const finishTextEdit = useCallback((e?: React.FocusEvent) => {
     // Ignore spurious blur events that happen immediately after starting to edit
     if (justStartedEditing.current) {
       justStartedEditing.current = false
@@ -495,6 +495,16 @@ export default function AnnotationLayer({
     }
     // Don't finish if currently resizing
     if (resizing) return
+
+    // Check if focus is going to toolbar controls - if so, refocus textarea instead of finishing
+    if (e?.relatedTarget) {
+      const relatedTarget = e.relatedTarget as HTMLElement
+      if (relatedTarget.closest('.toolbar')) {
+        // Focus went to toolbar, refocus textarea after toolbar interaction
+        setTimeout(() => textareaRef.current?.focus(), 0)
+        return
+      }
+    }
 
     if (editingTextId) {
       const shouldDelete = !editingContent.trim() || isPlaceholderText
