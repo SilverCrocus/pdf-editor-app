@@ -23,7 +23,8 @@ interface SidebarProps {
   documents: PdfDocument[]
   pages: PdfPage[]
   selectedPageIndex: number
-  onPageSelect: (index: number) => void
+  selectedPageIndices: Set<number>
+  onPageSelect: (index: number, shiftKey: boolean) => void
   onReorder: (oldIndex: number, newIndex: number) => void
   onDeletePage: (index: number) => void
   onDuplicatePage: (index: number) => void
@@ -36,7 +37,7 @@ interface SortableItemProps {
   showHeader: boolean
   docName: string
   selected: boolean
-  onClick: () => void
+  onClick: (e: React.MouseEvent) => void
   onContextMenu: (e: React.MouseEvent) => void
 }
 
@@ -60,13 +61,12 @@ function SortableItem({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       {showHeader && <div className="document-header">{docName}</div>}
-      <div onContextMenu={onContextMenu}>
+      <div onContextMenu={onContextMenu} onClick={onClick}>
         <PageThumbnail
           documentId={page.documentId}
           pageIndex={page.originalPageIndex}
           pageNumber={pageNumber}
           selected={selected}
-          onClick={onClick}
         />
       </div>
     </div>
@@ -77,6 +77,7 @@ export default function Sidebar({
   documents,
   pages,
   selectedPageIndex,
+  selectedPageIndices,
   onPageSelect,
   onReorder,
   onDeletePage,
@@ -139,8 +140,8 @@ export default function Sidebar({
                 pageNumber={pageNumber}
                 showHeader={showHeader}
                 docName={doc?.name || ''}
-                selected={index === selectedPageIndex}
-                onClick={() => onPageSelect(index)}
+                selected={selectedPageIndices.has(index)}
+                onClick={(e) => onPageSelect(index, e.shiftKey)}
                 onContextMenu={(e) => handleContextMenu(e, index)}
               />
             )

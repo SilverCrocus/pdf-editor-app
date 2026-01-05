@@ -7,7 +7,7 @@ interface PageThumbnailProps {
   pageIndex: number
   pageNumber: number
   selected: boolean
-  onClick: () => void
+  onClick?: () => void
 }
 
 const THUMBNAIL_SCALE = 0.2

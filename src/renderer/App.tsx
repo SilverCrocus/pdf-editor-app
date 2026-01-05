@@ -23,6 +23,8 @@ export default function App() {
   const [documents, setDocuments] = useState<PdfDocument[]>([])
   const [pages, setPages] = useState<PdfPage[]>([])
   const [selectedPageIndex, setSelectedPageIndex] = useState(0)
+  const [selectedPageIndices, setSelectedPageIndices] = useState<Set<number>>(new Set([0]))
+  const [copiedPages, setCopiedPages] = useState<PdfPage[]>([])
   const [zoom, setZoom] = useState(1.0)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null)
@@ -123,6 +125,8 @@ export default function App() {
     setDocuments([])
     setPages([])
     setSelectedPageIndex(0)
+    setSelectedPageIndices(new Set([0]))
+    setCopiedPages([])
     setZoom(1.0)
     setHasUnsavedChanges(false)
     setCurrentFilePath(null)
@@ -197,6 +201,62 @@ export default function App() {
       return newPages
     })
   }, [pushPageToHistory])
+
+  // Handle page selection with optional shift for multi-select
+  const handlePageSelect = useCallback((index: number, shiftKey: boolean) => {
+    if (shiftKey && pages.length > 0) {
+      // Range selection from current selected to clicked
+      const start = Math.min(selectedPageIndex, index)
+      const end = Math.max(selectedPageIndex, index)
+      const newSelection = new Set<number>()
+      for (let i = start; i <= end; i++) {
+        newSelection.add(i)
+      }
+      setSelectedPageIndices(newSelection)
+    } else {
+      // Single selection
+      setSelectedPageIndices(new Set([index]))
+    }
+    setSelectedPageIndex(index)
+  }, [selectedPageIndex, pages.length])
+
+  // Copy selected pages
+  const handleCopyPages = useCallback(() => {
+    if (selectedPageIndices.size === 0) return
+    const sortedIndices = Array.from(selectedPageIndices).sort((a, b) => a - b)
+    const pagesToCopy = sortedIndices.map(i => pages[i]).filter(Boolean)
+    setCopiedPages(pagesToCopy)
+  }, [selectedPageIndices, pages])
+
+  // Paste copied pages after the current selection
+  const handlePastePages = useCallback(() => {
+    if (copiedPages.length === 0) return
+    pushPageToHistory()
+
+    // Find the last selected index to paste after
+    const sortedIndices = Array.from(selectedPageIndices).sort((a, b) => a - b)
+    const insertAfter = sortedIndices.length > 0 ? sortedIndices[sortedIndices.length - 1] : selectedPageIndex
+
+    // Create new pages with new IDs
+    const newPages = copiedPages.map(p => ({
+      ...p,
+      id: crypto.randomUUID()
+    }))
+
+    setPages(prev => {
+      const updated = [...prev]
+      updated.splice(insertAfter + 1, 0, ...newPages)
+      return updated
+    })
+
+    // Select the pasted pages
+    const newIndices = new Set<number>()
+    for (let i = 0; i < newPages.length; i++) {
+      newIndices.add(insertAfter + 1 + i)
+    }
+    setSelectedPageIndices(newIndices)
+    setSelectedPageIndex(insertAfter + 1)
+  }, [copiedPages, selectedPageIndices, selectedPageIndex, pushPageToHistory])
 
   // Save As - always prompts for new location
   const handleSaveAs = useCallback(async () => {
@@ -395,6 +455,7 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp' && pages.length > 0) {
         e.preventDefault()
         setSelectedPageIndex(0)
+        setSelectedPageIndices(new Set([0]))
         return
       }
 
@@ -402,20 +463,33 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown' && pages.length > 0) {
         e.preventDefault()
         setSelectedPageIndex(pages.length - 1)
+        setSelectedPageIndices(new Set([pages.length - 1]))
         return
       }
 
-      // Arrow Up: Previous page
+      // Arrow Up: Previous page (with shift for extend selection)
       if (e.key === 'ArrowUp' && pages.length > 0) {
         e.preventDefault()
-        setSelectedPageIndex(prev => Math.max(0, prev - 1))
+        const newIndex = Math.max(0, selectedPageIndex - 1)
+        setSelectedPageIndex(newIndex)
+        if (e.shiftKey) {
+          setSelectedPageIndices(prev => new Set([...prev, newIndex]))
+        } else {
+          setSelectedPageIndices(new Set([newIndex]))
+        }
         return
       }
 
-      // Arrow Down: Next page
+      // Arrow Down: Next page (with shift for extend selection)
       if (e.key === 'ArrowDown' && pages.length > 0) {
         e.preventDefault()
-        setSelectedPageIndex(prev => Math.min(pages.length - 1, prev + 1))
+        const newIndex = Math.min(pages.length - 1, selectedPageIndex + 1)
+        setSelectedPageIndex(newIndex)
+        if (e.shiftKey) {
+          setSelectedPageIndices(prev => new Set([...prev, newIndex]))
+        } else {
+          setSelectedPageIndices(new Set([newIndex]))
+        }
         return
       }
 
@@ -423,6 +497,7 @@ export default function App() {
       if (e.key === 'Home' && pages.length > 0) {
         e.preventDefault()
         setSelectedPageIndex(0)
+        setSelectedPageIndices(new Set([0]))
         return
       }
 
@@ -430,6 +505,7 @@ export default function App() {
       if (e.key === 'End' && pages.length > 0) {
         e.preventDefault()
         setSelectedPageIndex(pages.length - 1)
+        setSelectedPageIndices(new Set([pages.length - 1]))
         return
       }
 
@@ -454,11 +530,25 @@ export default function App() {
         handleDuplicatePage(selectedPageIndex)
         return
       }
+
+      // Ctrl/Cmd + C: Copy selected pages
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && pages.length > 0) {
+        e.preventDefault()
+        handleCopyPages()
+        return
+      }
+
+      // Ctrl/Cmd + V: Paste copied pages
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && copiedPages.length > 0) {
+        e.preventDefault()
+        handlePastePages()
+        return
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleOpenFiles, handleCloseDocument, handleSave, handleSaveAs, handleDeletePage, handleDuplicatePage, pages.length, selectedPageIndex, selectedAnnotationId, wrappedDeleteAnnotation, unifiedUndo, unifiedRedo])
+  }, [handleOpenFiles, handleCloseDocument, handleSave, handleSaveAs, handleDeletePage, handleDuplicatePage, handleCopyPages, handlePastePages, pages.length, copiedPages.length, selectedPageIndex, selectedAnnotationId, wrappedDeleteAnnotation, unifiedUndo, unifiedRedo])
 
   // Get current page info for viewer
   const currentPage = pages[selectedPageIndex]
@@ -521,7 +611,8 @@ export default function App() {
           documents={documents}
           pages={pages}
           selectedPageIndex={selectedPageIndex}
-          onPageSelect={setSelectedPageIndex}
+          selectedPageIndices={selectedPageIndices}
+          onPageSelect={handlePageSelect}
           onReorder={handleReorder}
           onDeletePage={handleDeletePage}
           onDuplicatePage={handleDuplicatePage}

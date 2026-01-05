@@ -169,9 +169,13 @@ Note: Annotations are not yet baked into the saved PDF (planned feature).
 | Ctrl+Shift+S | Save As |
 | Ctrl+Z | Undo |
 | Ctrl+Y | Redo |
+| Ctrl+C | Copy selected page(s) |
+| Ctrl+V | Paste copied page(s) |
 | Delete / Backspace | Delete selected page or annotation |
 | Escape | Deselect tool / cancel current action |
 | ↑/↓ | Navigate pages |
+| Shift+↑/↓ | Extend page selection |
+| Shift+Click | Select range of pages |
 | Ctrl+↑ / Home | Go to first page |
 | Ctrl+↓ / End | Go to last page |
 | Ctrl+D | Duplicate selected page |
@@ -251,6 +255,8 @@ src/
 - [x] Text selection layer for highlight/underline/strikethrough (word-based selection)
 - [x] Annotation eraser (clear option in color pickers)
 - [x] Partial erasing and toggle-off (shrink/split merged annotations)
+- [x] Multi-page selection (Shift+click, Shift+arrow keys)
+- [x] Copy/paste pages (Ctrl+C, Ctrl+V)
 
 ### Planned
 - [ ] Bake annotations into PDF on save

@@ -18,6 +18,7 @@ vi.mock('@services/pdfRenderer', () => ({
 
 // Default props for all tests
 const defaultProps = {
+  selectedPageIndices: new Set([0]),
   onReorder: vi.fn(),
   onDeletePage: vi.fn(),
   onDuplicatePage: vi.fn()
@@ -117,11 +118,12 @@ describe('Sidebar', () => {
 
       const { container } = renderWithProviders(
         <Sidebar
+          {...defaultProps}
           documents={[doc]}
           pages={pages}
           selectedPageIndex={1}
+          selectedPageIndices={new Set([1])}
           onPageSelect={vi.fn()}
-          {...defaultProps}
         />
       )
 
@@ -149,7 +151,7 @@ describe('Sidebar', () => {
       const thumbnails = container.querySelectorAll('.page-thumbnail')
       await user.click(thumbnails[2])
 
-      expect(onPageSelect).toHaveBeenCalledWith(2)
+      expect(onPageSelect).toHaveBeenCalledWith(2, false)
     })
 
     it('can select first page', async () => {
@@ -162,6 +164,7 @@ describe('Sidebar', () => {
           documents={[doc]}
           pages={pages}
           selectedPageIndex={2}
+          selectedPageIndices={new Set([2])}
           onPageSelect={onPageSelect}
           {...defaultProps}
         />
@@ -170,7 +173,7 @@ describe('Sidebar', () => {
       const thumbnails = container.querySelectorAll('.page-thumbnail')
       await user.click(thumbnails[0])
 
-      expect(onPageSelect).toHaveBeenCalledWith(0)
+      expect(onPageSelect).toHaveBeenCalledWith(0, false)
     })
   })
 
@@ -248,7 +251,7 @@ describe('Sidebar', () => {
       const thumbnails = container.querySelectorAll('.page-thumbnail')
       await user.click(thumbnails[3]) // Click last page (from second doc)
 
-      expect(onPageSelect).toHaveBeenCalledWith(3)
+      expect(onPageSelect).toHaveBeenCalledWith(3, false)
     })
   })
 
@@ -284,6 +287,7 @@ describe('Sidebar', () => {
           documents={[doc]}
           pages={pages}
           selectedPageIndex={0}
+          selectedPageIndices={new Set([0])}
           onPageSelect={vi.fn()}
           onReorder={vi.fn()}
           onDeletePage={vi.fn()}
@@ -308,6 +312,7 @@ describe('Sidebar', () => {
           documents={[doc]}
           pages={pages}
           selectedPageIndex={0}
+          selectedPageIndices={new Set([0])}
           onPageSelect={vi.fn()}
           onReorder={vi.fn()}
           onDeletePage={onDeletePage}
