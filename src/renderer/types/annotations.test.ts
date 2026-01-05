@@ -218,10 +218,16 @@ describe('Annotation Constants', () => {
       expect(LINE_COLORS.black).toBe('#000000')
       expect(LINE_COLORS.red).toBe('#ff0000')
       expect(LINE_COLORS.blue).toBe('#0066cc')
+      expect(LINE_COLORS.clear).toBe('transparent')
     })
 
-    it('has correct color options array', () => {
+    it('has correct color options array (excludes clear)', () => {
       expect(LINE_COLOR_OPTIONS).toEqual(['black', 'red', 'blue'])
+      expect(LINE_COLOR_OPTIONS).not.toContain('clear')
+    })
+
+    it('clear is transparent for eraser functionality', () => {
+      expect(LINE_COLORS.clear).toBe('transparent')
     })
   })
 })

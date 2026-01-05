@@ -33,13 +33,21 @@ A desktop application for viewing PDFs, reordering pages, merging multiple docum
 
 | Tool | Description |
 |------|-------------|
-| **Highlight** | Semi-transparent rectangle. Colors: yellow, green, pink, blue |
-| **Underline** | Horizontal line. Customizable color |
-| **Strikethrough** | Horizontal line through text. Customizable color |
+| **Highlight** | Semi-transparent rectangle over text. Colors: yellow, green, pink, orange. Clear option to erase. |
+| **Underline** | Horizontal line under text. Colors: black, red, blue. Clear option to erase. |
+| **Strikethrough** | Horizontal line through text. Colors: black, red, blue. Clear option to erase. |
 | **Box** | Rectangle with customizable border color, fill color, and thickness (thin/medium/thick) |
 | **Text** | Placed text with font selection, size, and color |
 
-All annotations can be selected, moved, and resized. Click to select, drag to move, use corner handles to resize.
+**Text-based annotations** (highlight, underline, strikethrough):
+- Click and drag over PDF text to select words
+- Annotations snap to word boundaries
+- Adjacent words on the same line are merged into one annotation
+- Re-selecting already-annotated text with the same tool/color removes just that portion (toggle off)
+- Clear/eraser option in color picker removes annotations of that type
+- Partial erasing: selecting part of a merged annotation shrinks or splits it
+
+**Box and Text annotations** can be selected, moved, and resized. Click to select, drag to move, use corner handles to resize.
 
 ### Text Fonts (7 formal options)
 1. Arial - sans-serif, clean
@@ -240,9 +248,9 @@ src/
 - [x] Annotation selection, movement, and resize handles
 - [x] Annotation color pickers (highlight colors, line colors, box border/fill colors)
 - [x] Undo/Redo (unified for page and annotation operations)
-
-### In Progress
-- [ ] Text selection layer (select PDF text for precise highlighting/underlining)
+- [x] Text selection layer for highlight/underline/strikethrough (word-based selection)
+- [x] Annotation eraser (clear option in color pickers)
+- [x] Partial erasing and toggle-off (shrink/split merged annotations)
 
 ### Planned
 - [ ] Bake annotations into PDF on save
