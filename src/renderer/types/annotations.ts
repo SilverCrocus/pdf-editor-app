@@ -23,6 +23,7 @@ export type TextFont =
   | 'Trebuchet MS'
   | 'Palatino'
   | 'Courier New'
+  | 'Comic Sans MS'
 
 // Base annotation properties
 interface BaseAnnotation {
@@ -134,5 +135,6 @@ export const AVAILABLE_FONTS: TextFont[] = [
   'Georgia',
   'Trebuchet MS',
   'Palatino',
-  'Courier New'
+  'Courier New',
+  'Comic Sans MS'
 ]

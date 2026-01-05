@@ -210,8 +210,8 @@ describe('Annotation Constants', () => {
   })
 
   describe('AVAILABLE_FONTS', () => {
-    it('has 7 formal font options', () => {
-      expect(AVAILABLE_FONTS).toHaveLength(7)
+    it('has 8 font options', () => {
+      expect(AVAILABLE_FONTS).toHaveLength(8)
     })
 
     it('includes required fonts from spec', () => {
@@ -222,6 +222,7 @@ describe('Annotation Constants', () => {
       expect(AVAILABLE_FONTS).toContain('Trebuchet MS')
       expect(AVAILABLE_FONTS).toContain('Palatino')
       expect(AVAILABLE_FONTS).toContain('Courier New')
+      expect(AVAILABLE_FONTS).toContain('Comic Sans MS')
     })
   })
 

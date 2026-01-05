@@ -59,7 +59,7 @@ A desktop application for viewing PDFs, reordering pages, merging multiple docum
 - Ctrl+I to toggle italic
 - Ctrl+U to toggle underline
 
-### Text Fonts (7 formal options)
+### Text Fonts (8 options)
 1. Arial - sans-serif, clean
 2. Times New Roman - serif, traditional
 3. Verdana - sans-serif, readable
@@ -67,6 +67,7 @@ A desktop application for viewing PDFs, reordering pages, merging multiple docum
 5. Trebuchet MS - sans-serif, modern
 6. Palatino - serif, elegant
 7. Courier New - monospace, for forms/code
+8. Comic Sans MS - casual, informal
 
 ## Layout
 
