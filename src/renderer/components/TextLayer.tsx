@@ -4,7 +4,6 @@ import {
   groupTextIntoLines,
   findWordAtPoint,
   getSelectedWords,
-  findMergeCandidate,
   getMergedBounds,
   type TextLine,
   type TextSelection,
@@ -427,13 +426,23 @@ export default function TextLayer({
         height: lineSelection.height / height
       }
 
-      // Check for merge candidate
-      const mergeCandidate = findMergeCandidate(annotations, pageId, tool, color, newBounds)
+      // Find ALL overlapping annotations of same type/color to merge
+      const overlapping = findOverlappingAnnotations(newBounds, tool, color)
 
-      if (mergeCandidate) {
-        // Merge: update existing annotation with expanded bounds
-        const merged = getMergedBounds(mergeCandidate, newBounds)
-        onUpdateAnnotation(mergeCandidate.id, merged)
+      if (overlapping.length > 0) {
+        // Merge all overlapping annotations into one
+        let merged = newBounds
+        for (const ann of overlapping) {
+          merged = getMergedBounds(merged, ann)
+        }
+
+        // Update the first annotation with merged bounds
+        onUpdateAnnotation(overlapping[0].id, merged)
+
+        // Delete any additional overlapping annotations (they're now merged)
+        for (let i = 1; i < overlapping.length; i++) {
+          onDeleteAnnotation(overlapping[i].id)
+        }
       } else {
         // Create new annotation
         const annotation = createAnnotationFromSelection(
