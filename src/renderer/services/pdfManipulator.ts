@@ -193,6 +193,52 @@ function renderBox(
   })
 }
 
+/**
+ * Wrap text to fit within a given width
+ */
+function wrapText(
+  text: string,
+  font: { widthOfTextAtSize: (text: string, size: number) => number },
+  fontSize: number,
+  maxWidth: number
+): string[] {
+  const wrappedLines: string[] = []
+
+  // Split by explicit newlines first
+  const paragraphs = text.split('\n')
+
+  for (const paragraph of paragraphs) {
+    if (paragraph === '') {
+      wrappedLines.push('')
+      continue
+    }
+
+    const words = paragraph.split(/\s+/)
+    let currentLine = ''
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize)
+
+      if (testWidth <= maxWidth || currentLine === '') {
+        // Word fits, or it's the first word (must include even if too long)
+        currentLine = testLine
+      } else {
+        // Word doesn't fit, start new line
+        wrappedLines.push(currentLine)
+        currentLine = word
+      }
+    }
+
+    // Add the last line of the paragraph
+    if (currentLine) {
+      wrappedLines.push(currentLine)
+    }
+  }
+
+  return wrappedLines
+}
+
 async function renderText(
   pdfDoc: PDFDocument,
   page: PdfLibPage,
@@ -207,14 +253,16 @@ async function renderText(
     annotation.italic || false
   )
 
-  // Split text by newlines and render each line
-  const lines = annotation.content.split('\n')
+  // Wrap text to fit within box width
+  const wrappedLines = wrapText(annotation.content, font, annotation.fontSize, width)
   const lineHeight = annotation.fontSize * 1.2
 
   // Start from top of text box
   let currentY = y + height - annotation.fontSize
 
-  for (const line of lines) {
+  for (const line of wrappedLines) {
+    if (currentY < y) break // Stop if we've gone below the box
+
     page.drawText(line, {
       x,
       y: currentY,
@@ -224,7 +272,7 @@ async function renderText(
     })
 
     // Draw underline if enabled
-    if (annotation.underline) {
+    if (annotation.underline && line) {
       const textWidth = font.widthOfTextAtSize(line, annotation.fontSize)
       const underlineY = currentY - annotation.fontSize * 0.15
       page.drawLine({
