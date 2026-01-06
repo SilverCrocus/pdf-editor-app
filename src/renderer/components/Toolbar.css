@@ -143,6 +143,19 @@
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
+.tool-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.tool-button:disabled .tool-icon {
+  opacity: 0.4;
+}
+
+.redo-icon {
+  transform: scaleX(-1);
+}
+
 .tool-button[title^="Underline"] {
   text-decoration: underline;
 }

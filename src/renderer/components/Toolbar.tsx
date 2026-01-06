@@ -3,6 +3,13 @@ import type { AnnotationTool, HighlightColor, LineColor, TextFont, BoxThickness 
 import { HIGHLIGHT_COLORS, LINE_COLORS, LINE_COLOR_OPTIONS, AVAILABLE_FONTS } from '../types/annotations'
 import './Toolbar.css'
 
+// Icon imports
+import cursorIcon from '../assets/cursor.png'
+import eraserIcon from '../assets/eraser.png'
+import highlighterIcon from '../assets/highlighter.png'
+import rectangleIcon from '../assets/rectangle.png'
+import undoIcon from '../assets/undo.png'
+
 const TEXT_SIZE_OPTIONS = [10, 12, 14, 18, 24]
 
 const ZOOM_PRESETS = [
@@ -15,13 +22,13 @@ const ZOOM_PRESETS = [
   { label: '300%', value: 3 }
 ]
 
-const ANNOTATION_TOOLS: { id: AnnotationTool; label: string; icon: string; shortcut: string }[] = [
-  { id: 'select', label: 'Select', icon: '↖', shortcut: 'S' },
-  { id: 'eraser', label: 'Eraser', icon: '⌫', shortcut: 'E' },
-  { id: 'highlight', label: 'Highlight', icon: '▮', shortcut: 'H' },
+const ANNOTATION_TOOLS: { id: AnnotationTool; label: string; icon: string; iconSrc?: string; shortcut: string }[] = [
+  { id: 'select', label: 'Select', icon: '↖', iconSrc: cursorIcon, shortcut: 'S' },
+  { id: 'eraser', label: 'Eraser', icon: '⌫', iconSrc: eraserIcon, shortcut: 'E' },
+  { id: 'highlight', label: 'Highlight', icon: '▮', iconSrc: highlighterIcon, shortcut: 'H' },
   { id: 'underline', label: 'Underline', icon: 'U', shortcut: 'U' },
   { id: 'strikethrough', label: 'Strikethrough', icon: 'S', shortcut: 'K' },
-  { id: 'box', label: 'Box', icon: '☐', shortcut: 'B' },
+  { id: 'box', label: 'Box', icon: '☐', iconSrc: rectangleIcon, shortcut: 'B' },
   { id: 'text', label: 'Text', icon: 'T', shortcut: 'T' }
 ]
 
@@ -235,7 +242,11 @@ export default function Toolbar({
             disabled={!hasDocuments && tool.id !== 'select'}
             title={`${tool.label} (${tool.shortcut})`}
           >
-            {tool.icon}
+            {tool.iconSrc ? (
+              <img src={tool.iconSrc} alt={tool.label} className="tool-icon" />
+            ) : (
+              tool.icon
+            )}
           </button>
         ))}
 
@@ -511,7 +522,7 @@ export default function Toolbar({
           className="tool-button"
           title="Undo (Ctrl+Z)"
         >
-          ↶
+          <img src={undoIcon} alt="Undo" className="tool-icon" />
         </button>
         <button
           onClick={onRedo}
@@ -519,7 +530,7 @@ export default function Toolbar({
           className="tool-button"
           title="Redo (Ctrl+Shift+Z)"
         >
-          ↷
+          <img src={undoIcon} alt="Redo" className="tool-icon redo-icon" />
         </button>
         <button
           onClick={onDiscardAnnotations}
