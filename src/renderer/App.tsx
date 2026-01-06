@@ -405,18 +405,21 @@ export default function App() {
   const wrappedAddAnnotation = useCallback((annotation: Parameters<typeof addAnnotation>[0]) => {
     setHistoryStack(prev => [...prev, { type: 'annotations' }])
     setFutureStack([])
+    setHasUnsavedChanges(true)
     addAnnotation(annotation)
   }, [addAnnotation])
 
   const wrappedUpdateAnnotation = useCallback((id: string, updates: Parameters<typeof updateAnnotation>[1]) => {
     setHistoryStack(prev => [...prev, { type: 'annotations' }])
     setFutureStack([])
+    setHasUnsavedChanges(true)
     updateAnnotation(id, updates)
   }, [updateAnnotation])
 
   const wrappedDeleteAnnotation = useCallback((id: string) => {
     setHistoryStack(prev => [...prev, { type: 'annotations' }])
     setFutureStack([])
+    setHasUnsavedChanges(true)
     deleteAnnotation(id)
   }, [deleteAnnotation])
 
