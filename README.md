@@ -48,23 +48,6 @@ The app will be available in your Start Menu.
 
 ---
 
-### Linux
-
-**Download:** `DocuMint PDF Editor-x.x.x.AppImage` or `DocuMint PDF Editor-x.x.x.deb`
-
-**AppImage (any distro):**
-```bash
-chmod +x DocuMint\ PDF\ Editor-x.x.x.AppImage
-./DocuMint\ PDF\ Editor-x.x.x.AppImage
-```
-
-**Debian/Ubuntu (.deb):**
-```bash
-sudo dpkg -i DocuMint\ PDF\ Editor-x.x.x.deb
-```
-
----
-
 ### Building from Source
 
 If no pre-built release is available for your platform:
@@ -80,7 +63,7 @@ npm install
 # Build for your platform
 npm run package:mac    # macOS (.dmg)
 npm run package:win    # Windows (.exe)
-npm run package:linux  # Linux (.AppImage, .deb)
+npm run package:linux  # Linux (.AppImage, .deb) - untested
 ```
 
 Built installers will be in the `release/` folder.
