@@ -6,24 +6,67 @@ A fresh, effortless desktop application for viewing PDFs, reordering pages, merg
 
 Download the latest release for your platform from the [Releases page](../../releases).
 
+---
+
 ### macOS
-1. Download `DocuMint PDF Editor-x.x.x-arm64.dmg` (Apple Silicon) or `DocuMint PDF Editor-x.x.x-x64.dmg` (Intel)
-2. Open the DMG and drag the app to Applications
-3. On first launch, right-click the app and select "Open" to bypass Gatekeeper (unsigned app)
+
+**Download:** `DocuMint PDF Editor-x.x.x-arm64.dmg` (Apple Silicon M1/M2/M3/M4) or `DocuMint PDF Editor-x.x.x-x64.dmg` (Intel)
+
+**Steps:**
+1. Open the downloaded `.dmg` file
+2. Drag **DocuMint PDF Editor** to the **Applications** folder
+3. Eject the DMG
+
+**First launch (important!):**
+
+The app is not signed with an Apple Developer certificate, so macOS will block it. To fix this:
+
+1. Open **Terminal** (search "Terminal" in Spotlight)
+2. Paste this command and press Enter:
+   ```bash
+   xattr -cr "/Applications/DocuMint PDF Editor.app"
+   ```
+3. Now open the app from Applications normally
+
+*Alternative:* Right-click the app → Open → Click "Open" in the dialog → Go to System Settings → Privacy & Security → Click "Open Anyway"
+
+---
 
 ### Windows
-1. Download `DocuMint PDF Editor-x.x.x-setup.exe`
-2. Run the installer and follow the prompts
-3. Choose installation directory (optional)
+
+**Download:** `DocuMint PDF Editor Setup x.x.x.exe`
+
+**Steps:**
+1. Run the downloaded `.exe` installer
+2. If Windows SmartScreen appears, click **More info** → **Run anyway**
+3. Follow the installation wizard
+4. Choose installation location (or keep default)
+5. Click **Install**, then **Finish**
+
+The app will be available in your Start Menu.
+
+---
 
 ### Linux
-1. Download `DocuMint PDF Editor-x.x.x.AppImage` or `.deb` package
-2. For AppImage: `chmod +x *.AppImage && ./*.AppImage`
-3. For Debian/Ubuntu: `sudo dpkg -i *.deb`
+
+**Download:** `DocuMint PDF Editor-x.x.x.AppImage` or `DocuMint PDF Editor-x.x.x.deb`
+
+**AppImage (any distro):**
+```bash
+chmod +x DocuMint\ PDF\ Editor-x.x.x.AppImage
+./DocuMint\ PDF\ Editor-x.x.x.AppImage
+```
+
+**Debian/Ubuntu (.deb):**
+```bash
+sudo dpkg -i DocuMint\ PDF\ Editor-x.x.x.deb
+```
+
+---
 
 ### Building from Source
 
-If no pre-built release is available for your platform, you can build it yourself:
+If no pre-built release is available for your platform:
 
 ```bash
 # Clone the repository
@@ -37,9 +80,6 @@ npm install
 npm run package:mac    # macOS (.dmg)
 npm run package:win    # Windows (.exe)
 npm run package:linux  # Linux (.AppImage, .deb)
-
-# Or build for all platforms
-npm run package
 ```
 
 Built installers will be in the `release/` folder.
