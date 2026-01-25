@@ -640,25 +640,34 @@ export default function App() {
     return () => window.removeEventListener('wheel', handleWheel)
   }, [])
 
-  // Check for initial file to open (when app opened via file association)
+  // Check for initial files to open (when app opened via file association)
   useEffect(() => {
-    async function checkInitialFile(): Promise<void> {
+    async function checkInitialFiles(): Promise<void> {
       try {
-        const filePath = await window.electronAPI.getInitialFile()
-        if (!filePath) return
+        const filePaths = await window.electronAPI.getInitialFiles()
+        if (!filePaths || filePaths.length === 0) return
 
-        const { doc, pages: newPages } = await loadPdfFile(filePath)
-        setDocuments([doc])
-        setPages(newPages)
-        initialPagesRef.current = serializePageState(newPages)
-        setCurrentFilePath(filePath)
+        const allDocs: PdfDocument[] = []
+        const allPages: PdfPage[] = []
+
+        for (const filePath of filePaths) {
+          const { doc, pages: newPages } = await loadPdfFile(filePath)
+          allDocs.push(doc)
+          allPages.push(...newPages)
+        }
+
+        setDocuments(allDocs)
+        setPages(allPages)
+        initialPagesRef.current = serializePageState(allPages)
+        // Single file = can use Save, multiple = must use Save As
+        setCurrentFilePath(filePaths.length === 1 ? filePaths[0] : null)
         setHasUnsavedChanges(false)
       } catch (error) {
-        console.error('Error loading initial file:', error)
+        console.error('Error loading initial files:', error)
       }
     }
 
-    checkInitialFile()
+    checkInitialFiles()
   }, [loadPdfFile])
 
   // Get current page info for viewer

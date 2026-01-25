@@ -3,22 +3,22 @@ import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'
 
-// Store pending file path for windows (windowId -> filePath)
-const pendingFiles = new Map<number, string>()
+// Store pending file paths for windows (windowId -> filePaths)
+const pendingFiles = new Map<number, string[]>()
 
-export function setPendingFile(windowId: number, filePath: string) {
-  pendingFiles.set(windowId, filePath)
+export function setPendingFiles(windowId: number, filePaths: string[]) {
+  pendingFiles.set(windowId, filePaths)
 }
 
 export function setupIpcHandlers() {
-  ipcMain.handle('get-initial-file', (event) => {
+  ipcMain.handle('get-initial-files', (event) => {
     const windowId = event.sender.id
-    const filePath = pendingFiles.get(windowId)
-    if (filePath) {
+    const filePaths = pendingFiles.get(windowId)
+    if (filePaths) {
       pendingFiles.delete(windowId)
-      return filePath
+      return filePaths
     }
-    return null
+    return []
   })
   ipcMain.handle('open-file-dialog', async () => {
     const result = await dialog.showOpenDialog({

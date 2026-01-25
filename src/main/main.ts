@@ -1,11 +1,22 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'path'
-import { setupIpcHandlers, setPendingFile } from './ipc'
+import { setupIpcHandlers, setPendingFiles } from './ipc'
 
 let mainWindow: BrowserWindow | null = null
-let pendingFilePath: string | null = null
+let pendingFilePaths: string[] = []
+let batchTimer: NodeJS.Timeout | null = null
+const BATCH_DELAY_MS = 150
 
-function createWindow(filePath?: string) {
+// Natural sort comparator for filenames
+function naturalSort(paths: string[]): string[] {
+  return [...paths].sort((a, b) => {
+    const nameA = path.basename(a)
+    const nameB = path.basename(b)
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' })
+  })
+}
+
+function createWindow(filePaths?: string[]) {
   const window = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -16,9 +27,9 @@ function createWindow(filePath?: string) {
     }
   })
 
-  // Store pending file for this window
-  if (filePath) {
-    setPendingFile(window.webContents.id, filePath)
+  // Store pending files for this window
+  if (filePaths && filePaths.length > 0) {
+    setPendingFiles(window.webContents.id, filePaths)
   }
 
   if (process.env.NODE_ENV === 'development') {
@@ -42,28 +53,48 @@ function createWindow(filePath?: string) {
   return window
 }
 
+// Process a batch of files - sort and open in single window
+function processBatch() {
+  if (pendingFilePaths.length > 0) {
+    const sortedPaths = naturalSort(pendingFilePaths)
+    createWindow(sortedPaths)
+    pendingFilePaths = []
+  }
+  batchTimer = null
+}
+
 // Handle file open from Finder (macOS)
 app.on('open-file', (event, filePath) => {
   event.preventDefault()
 
   if (app.isReady()) {
-    // App is ready, create new window with file
-    createWindow(filePath)
+    // Add to pending batch
+    pendingFilePaths.push(filePath)
+
+    // Reset/start the batch timer
+    if (batchTimer) clearTimeout(batchTimer)
+    batchTimer = setTimeout(processBatch, BATCH_DELAY_MS)
   } else {
-    // App is starting, store for later
-    pendingFilePath = filePath
+    // App is starting, collect for initial batch
+    pendingFilePaths.push(filePath)
   }
 })
 
 app.whenReady().then(() => {
   setupIpcHandlers()
 
-  // Check for file path in command line args (macOS passes file as arg)
-  const fileArg = process.argv.find(arg => arg.endsWith('.pdf') && !arg.startsWith('-'))
-  const initialFile = pendingFilePath || fileArg
+  // Check for file paths in command line args (macOS passes files as args)
+  const fileArgs = process.argv.filter(arg => arg.endsWith('.pdf') && !arg.startsWith('-'))
 
-  createWindow(initialFile || undefined)
-  pendingFilePath = null
+  // Combine any pending paths with command line args
+  const allPaths = [...pendingFilePaths, ...fileArgs]
+  pendingFilePaths = []
+
+  if (allPaths.length > 0) {
+    createWindow(naturalSort(allPaths))
+  } else {
+    createWindow()
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
