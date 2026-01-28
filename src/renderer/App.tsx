@@ -40,7 +40,7 @@ export default function App() {
   // Annotation state
   const {
     annotations,
-    selectedAnnotationId,
+    selectedAnnotationIds,
     currentTool,
     toolSettings,
     canUndo,
@@ -49,6 +49,7 @@ export default function App() {
     updateAnnotation,
     deleteAnnotation,
     selectAnnotation,
+    clearSelection,
     setCurrentTool,
     updateToolSettings,
     getAnnotationsForPage,
@@ -539,12 +540,12 @@ export default function App() {
         return
       }
 
-      // Delete or Backspace: Delete selected annotation, or page if no annotation selected
+      // Delete or Backspace: Delete selected annotations, or page if no annotation selected
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
-        // If annotation is selected, delete it
-        if (selectedAnnotationId) {
-          wrappedDeleteAnnotation(selectedAnnotationId)
+        // If annotations are selected, delete them all
+        if (selectedAnnotationIds.size > 0) {
+          selectedAnnotationIds.forEach(id => wrappedDeleteAnnotation(id))
           return
         }
         // Otherwise delete selected page (if more than one page)
@@ -605,6 +606,10 @@ export default function App() {
             e.preventDefault()
             setCurrentTool('box')
             return
+          case 'p':
+            e.preventDefault()
+            setCurrentTool('pen')
+            return
           case 't':
             e.preventDefault()
             setCurrentTool('text')
@@ -619,7 +624,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleOpenFiles, handleCloseDocument, handleSave, handleSaveAs, handleDeletePage, handleDuplicatePage, handleCopyPages, handlePastePages, pages.length, copiedPages.length, selectedPageIndex, selectedAnnotationId, wrappedDeleteAnnotation, unifiedUndo, unifiedRedo, selectAnnotation, setCurrentTool])
+  }, [handleOpenFiles, handleCloseDocument, handleSave, handleSaveAs, handleDeletePage, handleDuplicatePage, handleCopyPages, handlePastePages, pages.length, copiedPages.length, selectedPageIndex, selectedAnnotationIds, wrappedDeleteAnnotation, unifiedUndo, unifiedRedo, selectAnnotation, setCurrentTool])
 
   // Ctrl+Mouse Wheel zoom
   useEffect(() => {
@@ -676,57 +681,73 @@ export default function App() {
   // Can use Save (not Save As) only with single document
   const canSave = documents.length === 1 && currentFilePath !== null
 
-  // Get the selected annotation to determine its type (for showing tool options)
-  const selectedAnnotation = selectedAnnotationId
-    ? annotations.find(a => a.id === selectedAnnotationId)
-    : null
-  const selectedAnnotationType: 'box' | 'text' | null =
-    selectedAnnotation?.type === 'box' ? 'box' :
-    selectedAnnotation?.type === 'text' ? 'text' : null
+  // Get selected annotations to determine type (for showing tool options)
+  // Use first selected annotation to determine which tool options to show
+  const selectedAnnotations = annotations.filter(a => selectedAnnotationIds.has(a.id))
+  const firstSelectedAnnotation = selectedAnnotations[0] || null
+  const selectedAnnotationType: 'box' | 'text' | 'pen' | null =
+    firstSelectedAnnotation?.type === 'box' ? 'box' :
+    firstSelectedAnnotation?.type === 'text' ? 'text' :
+    firstSelectedAnnotation?.type === 'pen' ? 'pen' : null
 
-  // Handler for box color changes - updates selected box if one is selected
+  // Handler for box color changes - updates all selected boxes
   const handleBoxColorChange = useCallback((color: string) => {
     updateToolSettings({ boxColor: color })
-    if (selectedAnnotation?.type === 'box') {
-      wrappedUpdateAnnotation(selectedAnnotation.id, { color })
-    }
-  }, [selectedAnnotation, updateToolSettings, wrappedUpdateAnnotation])
+    selectedAnnotations.filter(a => a.type === 'box').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { color })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
 
   const handleBoxFillColorChange = useCallback((color: string) => {
     updateToolSettings({ boxFillColor: color })
-    if (selectedAnnotation?.type === 'box') {
-      wrappedUpdateAnnotation(selectedAnnotation.id, { fillColor: color })
-    }
-  }, [selectedAnnotation, updateToolSettings, wrappedUpdateAnnotation])
+    selectedAnnotations.filter(a => a.type === 'box').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { fillColor: color })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
 
   const handleBoxThicknessChange = useCallback((thickness: typeof toolSettings.boxThickness) => {
     updateToolSettings({ boxThickness: thickness })
-    if (selectedAnnotation?.type === 'box') {
-      wrappedUpdateAnnotation(selectedAnnotation.id, { thickness })
-    }
-  }, [selectedAnnotation, updateToolSettings, wrappedUpdateAnnotation])
+    selectedAnnotations.filter(a => a.type === 'box').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { thickness })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
 
-  // Handler for text font changes - updates selected text if one is selected
+  // Handler for pen color/width changes - updates all selected pens
+  const handlePenColorChange = useCallback((color: string) => {
+    updateToolSettings({ penColor: color })
+    selectedAnnotations.filter(a => a.type === 'pen').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { color })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
+
+  const handlePenWidthChange = useCallback((strokeWidth: typeof toolSettings.penWidth) => {
+    updateToolSettings({ penWidth: strokeWidth })
+    selectedAnnotations.filter(a => a.type === 'pen').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { strokeWidth })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
+
+  // Handler for text font changes - updates all selected text annotations
   const handleTextFontChange = useCallback((font: typeof toolSettings.textFont) => {
     updateToolSettings({ textFont: font })
-    if (selectedAnnotation?.type === 'text') {
-      wrappedUpdateAnnotation(selectedAnnotation.id, { font })
-    }
-  }, [selectedAnnotation, updateToolSettings, wrappedUpdateAnnotation])
+    selectedAnnotations.filter(a => a.type === 'text').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { font })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
 
   const handleTextSizeChange = useCallback((fontSize: number) => {
     updateToolSettings({ textSize: fontSize })
-    if (selectedAnnotation?.type === 'text') {
-      wrappedUpdateAnnotation(selectedAnnotation.id, { fontSize })
-    }
-  }, [selectedAnnotation, updateToolSettings, wrappedUpdateAnnotation])
+    selectedAnnotations.filter(a => a.type === 'text').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { fontSize })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
 
   const handleTextColorChange = useCallback((color: string) => {
     updateToolSettings({ textColor: color })
-    if (selectedAnnotation?.type === 'text') {
-      wrappedUpdateAnnotation(selectedAnnotation.id, { color })
-    }
-  }, [selectedAnnotation, updateToolSettings, wrappedUpdateAnnotation])
+    selectedAnnotations.filter(a => a.type === 'text').forEach(a => {
+      wrappedUpdateAnnotation(a.id, { color })
+    })
+  }, [selectedAnnotations, updateToolSettings, wrappedUpdateAnnotation])
 
   return (
     <div className="app">
@@ -741,6 +762,8 @@ export default function App() {
         boxColor={toolSettings.boxColor}
         boxFillColor={toolSettings.boxFillColor}
         boxThickness={toolSettings.boxThickness}
+        penColor={toolSettings.penColor}
+        penWidth={toolSettings.penWidth}
         textFont={toolSettings.textFont}
         textSize={toolSettings.textSize}
         textColor={toolSettings.textColor}
@@ -758,6 +781,8 @@ export default function App() {
         onBoxColorChange={handleBoxColorChange}
         onBoxFillColorChange={handleBoxFillColorChange}
         onBoxThicknessChange={handleBoxThicknessChange}
+        onPenColorChange={handlePenColorChange}
+        onPenWidthChange={handlePenWidthChange}
         onTextFontChange={handleTextFontChange}
         onTextSizeChange={handleTextSizeChange}
         onTextColorChange={handleTextColorChange}
@@ -782,13 +807,15 @@ export default function App() {
           pageIndex={currentPage?.originalPageIndex || 0}
           zoom={zoom}
           annotations={currentPage ? getAnnotationsForPage(currentPage.id) : []}
-          selectedAnnotationId={selectedAnnotationId}
+          selectedAnnotationIds={selectedAnnotationIds}
           currentTool={currentTool}
           highlightColor={toolSettings.highlightColor}
           lineColor={toolSettings.lineColor}
           boxColor={toolSettings.boxColor}
           boxFillColor={toolSettings.boxFillColor}
           boxThickness={toolSettings.boxThickness}
+          penColor={toolSettings.penColor}
+          penWidth={toolSettings.penWidth}
           textColor={toolSettings.textColor}
           textFont={toolSettings.textFont}
           textSize={toolSettings.textSize}

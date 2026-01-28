@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { renderPage } from '../services/pdfRenderer'
 import TextLayer from './TextLayer'
 import AnnotationLayer from './AnnotationLayer'
-import type { Annotation, AnnotationTool, HighlightColor, BoxThickness, TextFont } from '../types/annotations'
+import type { Annotation, AnnotationTool, BoxThickness, PenWidth, TextFont } from '../types/annotations'
 import './MainViewer.css'
 
 interface MainViewerProps {
@@ -12,13 +12,15 @@ interface MainViewerProps {
   zoom: number
   // Annotation props
   annotations: Annotation[]
-  selectedAnnotationId: string | null
+  selectedAnnotationIds: Set<string>
   currentTool: AnnotationTool
-  highlightColor: HighlightColor
+  highlightColor: string
   lineColor: string
   boxColor: string
   boxFillColor: string
   boxThickness: BoxThickness
+  penColor: string
+  penWidth: PenWidth
   textColor: string
   textFont: TextFont
   textSize: number
@@ -35,13 +37,15 @@ export default function MainViewer({
   pageIndex,
   zoom,
   annotations,
-  selectedAnnotationId,
+  selectedAnnotationIds,
   currentTool,
   highlightColor,
   lineColor,
   boxColor,
   boxFillColor,
   boxThickness,
+  penColor,
+  penWidth,
   textColor,
   textFont,
   textSize,
@@ -235,7 +239,7 @@ export default function MainViewer({
             <AnnotationLayer
               pageId={pageId}
               annotations={annotations}
-              selectedAnnotationId={selectedAnnotationId}
+              selectedAnnotationIds={selectedAnnotationIds}
               currentTool={currentTool}
               canvasWidth={canvasDimensions.width}
               canvasHeight={canvasDimensions.height}
@@ -245,6 +249,8 @@ export default function MainViewer({
               boxColor={boxColor}
               boxFillColor={boxFillColor}
               boxThickness={boxThickness}
+              penColor={penColor}
+              penWidth={penWidth}
               textColor={textColor}
               textFont={textFont}
               textSize={textSize}

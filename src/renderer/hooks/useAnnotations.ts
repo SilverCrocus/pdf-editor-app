@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react'
 import type {
   Annotation,
   AnnotationTool,
-  HighlightColor,
   BoxThickness,
+  PenWidth,
   TextFont
 } from '../types/annotations'
 import {
@@ -12,16 +12,20 @@ import {
   DEFAULT_BOX_FILL_COLOR,
   DEFAULT_HIGHLIGHT_COLOR,
   DEFAULT_BOX_THICKNESS,
+  DEFAULT_PEN_COLOR,
+  DEFAULT_PEN_WIDTH,
   DEFAULT_TEXT_FONT,
   DEFAULT_TEXT_SIZE
 } from '../types/annotations'
 
 export interface AnnotationToolSettings {
-  highlightColor: HighlightColor
+  highlightColor: string
   lineColor: string
   boxColor: string
   boxFillColor: string
   boxThickness: BoxThickness
+  penColor: string
+  penWidth: PenWidth
   textColor: string
   textFont: TextFont
   textSize: number
@@ -29,7 +33,7 @@ export interface AnnotationToolSettings {
 
 export interface UseAnnotationsReturn {
   annotations: Annotation[]
-  selectedAnnotationId: string | null
+  selectedAnnotationIds: Set<string>
   currentTool: AnnotationTool
   toolSettings: AnnotationToolSettings
   canUndo: boolean
@@ -37,7 +41,8 @@ export interface UseAnnotationsReturn {
   addAnnotation: (annotation: Annotation) => void
   updateAnnotation: (id: string, updates: Partial<Annotation>) => void
   deleteAnnotation: (id: string) => void
-  selectAnnotation: (id: string | null) => void
+  selectAnnotation: (id: string | null, addToSelection?: boolean) => void
+  clearSelection: () => void
   setCurrentTool: (tool: AnnotationTool) => void
   updateToolSettings: (updates: Partial<AnnotationToolSettings>) => void
   getAnnotationsForPage: (pageId: string) => Annotation[]
@@ -52,7 +57,7 @@ export function useAnnotations(): UseAnnotationsReturn {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [history, setHistory] = useState<Annotation[][]>([])
   const [future, setFuture] = useState<Annotation[][]>([])
-  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null)
+  const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<Set<string>>(new Set())
   const [currentTool, setCurrentTool] = useState<AnnotationTool>('select')
   const [toolSettings, setToolSettings] = useState<AnnotationToolSettings>({
     highlightColor: DEFAULT_HIGHLIGHT_COLOR,
@@ -60,6 +65,8 @@ export function useAnnotations(): UseAnnotationsReturn {
     boxColor: DEFAULT_BOX_COLOR,
     boxFillColor: DEFAULT_BOX_FILL_COLOR,
     boxThickness: DEFAULT_BOX_THICKNESS,
+    penColor: DEFAULT_PEN_COLOR,
+    penWidth: DEFAULT_PEN_WIDTH,
     textColor: '#000000',
     textFont: DEFAULT_TEXT_FONT,
     textSize: DEFAULT_TEXT_SIZE
@@ -100,11 +107,36 @@ export function useAnnotations(): UseAnnotationsReturn {
       pushToHistory(prev)
       return prev.filter(ann => ann.id !== id)
     })
-    setSelectedAnnotationId(prev => (prev === id ? null : prev))
+    setSelectedAnnotationIds(prev => {
+      if (prev.has(id)) {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      }
+      return prev
+    })
   }, [pushToHistory])
 
-  const selectAnnotation = useCallback((id: string | null) => {
-    setSelectedAnnotationId(id)
+  const selectAnnotation = useCallback((id: string | null, addToSelection = false) => {
+    if (id === null) {
+      setSelectedAnnotationIds(new Set())
+    } else if (addToSelection) {
+      setSelectedAnnotationIds(prev => {
+        const next = new Set(prev)
+        if (next.has(id)) {
+          next.delete(id) // Toggle off if already selected
+        } else {
+          next.add(id)
+        }
+        return next
+      })
+    } else {
+      setSelectedAnnotationIds(new Set([id]))
+    }
+  }, [])
+
+  const clearSelection = useCallback(() => {
+    setSelectedAnnotationIds(new Set())
   }, [])
 
   const updateToolSettings = useCallback((updates: Partial<AnnotationToolSettings>) => {
@@ -123,7 +155,7 @@ export function useAnnotations(): UseAnnotationsReturn {
     setHistory(prev => prev.slice(0, -1))
     setFuture(prev => [annotations, ...prev])
     setAnnotations(previousState)
-    setSelectedAnnotationId(null)
+    setSelectedAnnotationIds(new Set())
   }, [history, annotations])
 
   const redo = useCallback(() => {
@@ -133,14 +165,14 @@ export function useAnnotations(): UseAnnotationsReturn {
     setFuture(prev => prev.slice(1))
     setHistory(prev => [...prev, annotations])
     setAnnotations(nextState)
-    setSelectedAnnotationId(null)
+    setSelectedAnnotationIds(new Set())
   }, [future, annotations])
 
   const discardAllAnnotations = useCallback(() => {
     if (annotations.length === 0) return
     pushToHistory(annotations)
     setAnnotations([])
-    setSelectedAnnotationId(null)
+    setSelectedAnnotationIds(new Set())
   }, [annotations, pushToHistory])
 
   const canUndo = history.length > 0
@@ -148,7 +180,7 @@ export function useAnnotations(): UseAnnotationsReturn {
 
   return {
     annotations,
-    selectedAnnotationId,
+    selectedAnnotationIds,
     currentTool,
     toolSettings,
     canUndo,
@@ -157,6 +189,7 @@ export function useAnnotations(): UseAnnotationsReturn {
     updateAnnotation,
     deleteAnnotation,
     selectAnnotation,
+    clearSelection,
     setCurrentTool,
     updateToolSettings,
     getAnnotationsForPage,

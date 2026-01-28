@@ -1,7 +1,7 @@
 import { PDFDocument, rgb, PDFPage as PdfLibPage } from 'pdf-lib'
 import type { PdfPage } from '../types/pdf'
-import type { Annotation, TextAnnotation, BoxAnnotation, HighlightAnnotation, UnderlineAnnotation, StrikethroughAnnotation } from '../types/annotations'
-import { HIGHLIGHT_COLORS, BOX_THICKNESS_PX } from '../types/annotations'
+import type { Annotation, TextAnnotation, BoxAnnotation, HighlightAnnotation, UnderlineAnnotation, StrikethroughAnnotation, PenAnnotation } from '../types/annotations'
+import { BOX_THICKNESS_PX } from '../types/annotations'
 import { getEmbeddedFont, clearFontCache } from './fontLoader'
 
 // Cache of loaded PDF documents for manipulation
@@ -77,9 +77,9 @@ async function bakeAnnotationsOntoPage(
 ): Promise<void> {
   const { width: pageWidth, height: pageHeight } = page.getSize()
 
-  // Sort annotations by render order: highlights first, then lines, boxes, text on top
+  // Sort annotations by render order: highlights first, then lines, pen, boxes, text on top
   const sortedAnnotations = [...annotations].sort((a, b) => {
-    const order: Record<string, number> = { highlight: 0, underline: 1, strikethrough: 1, box: 2, text: 3 }
+    const order: Record<string, number> = { highlight: 0, underline: 1, strikethrough: 1, pen: 2, box: 3, text: 4 }
     return (order[a.type] || 0) - (order[b.type] || 0)
   })
 
@@ -104,6 +104,9 @@ async function bakeAnnotationsOntoPage(
       case 'box':
         renderBox(page, annotation, x, y, width, height)
         break
+      case 'pen':
+        renderPen(page, annotation, pageWidth, pageHeight)
+        break
       case 'text':
         await renderText(pdfDoc, page, annotation, x, y, width, height)
         break
@@ -116,10 +119,9 @@ function renderHighlight(
   annotation: HighlightAnnotation,
   x: number, y: number, width: number, height: number
 ): void {
-  const colorStr = HIGHLIGHT_COLORS[annotation.color]
-  if (colorStr === 'transparent') return
+  if (annotation.color === 'transparent') return
 
-  const { r, g, b } = parseColor(colorStr)
+  const { r, g, b } = parseColor(annotation.color)
 
   page.drawRectangle({
     x, y, width, height,
@@ -192,6 +194,38 @@ function renderBox(
     borderColor: rgb(borderR, borderG, borderB),
     borderWidth: thickness
   })
+}
+
+function renderPen(
+  page: PdfLibPage,
+  annotation: PenAnnotation,
+  pageWidth: number,
+  pageHeight: number
+): void {
+  if (annotation.points.length < 2) return
+
+  const { r, g, b } = parseColor(annotation.color)
+  const thickness = annotation.strokeWidth
+
+  // Draw lines between consecutive points
+  for (let i = 0; i < annotation.points.length - 1; i++) {
+    const [x1Norm, y1Norm] = annotation.points[i]
+    const [x2Norm, y2Norm] = annotation.points[i + 1]
+
+    // Convert normalized coordinates to PDF points (PDF origin is bottom-left)
+    const x1 = x1Norm * pageWidth
+    const y1 = pageHeight - (y1Norm * pageHeight)
+    const x2 = x2Norm * pageWidth
+    const y2 = pageHeight - (y2Norm * pageHeight)
+
+    page.drawLine({
+      start: { x: x1, y: y1 },
+      end: { x: x2, y: y2 },
+      thickness,
+      color: rgb(r, g, b),
+      lineCap: 1 // Round cap for smooth strokes
+    })
+  }
 }
 
 /**

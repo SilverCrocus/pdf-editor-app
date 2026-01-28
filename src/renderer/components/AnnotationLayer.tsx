@@ -2,30 +2,32 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import type {
   Annotation,
   AnnotationTool,
-  HighlightColor,
   BoxThickness,
+  PenWidth,
   TextFont
 } from '../types/annotations'
 import {
-  HIGHLIGHT_COLORS_TRANSPARENT,
-  BOX_THICKNESS_PX
+  BOX_THICKNESS_PX,
+  hexToHighlightRgba
 } from '../types/annotations'
 import './AnnotationLayer.css'
 
 interface AnnotationLayerProps {
   pageId: string
   annotations: Annotation[]
-  selectedAnnotationId: string | null
+  selectedAnnotationIds: Set<string>
   currentTool: AnnotationTool
   canvasWidth: number
   canvasHeight: number
   zoom: number
   // Tool settings
-  highlightColor: HighlightColor
+  highlightColor: string
   lineColor: string
   boxColor: string
   boxFillColor: string
   boxThickness: BoxThickness
+  penColor: string
+  penWidth: PenWidth
   textColor: string
   textFont: TextFont
   textSize: number
@@ -33,7 +35,7 @@ interface AnnotationLayerProps {
   onAddAnnotation: (annotation: Annotation) => void
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void
   onDeleteAnnotation: (id: string) => void
-  onSelectAnnotation: (id: string | null) => void
+  onSelectAnnotation: (id: string | null, addToSelection?: boolean) => void
   onToolChange: (tool: AnnotationTool) => void
 }
 
@@ -48,7 +50,7 @@ interface DrawingState {
 export default function AnnotationLayer({
   pageId,
   annotations,
-  selectedAnnotationId,
+  selectedAnnotationIds,
   currentTool,
   canvasWidth,
   canvasHeight,
@@ -58,6 +60,8 @@ export default function AnnotationLayer({
   boxColor,
   boxFillColor,
   boxThickness,
+  penColor,
+  penWidth,
   textColor,
   textFont,
   textSize,
@@ -69,7 +73,13 @@ export default function AnnotationLayer({
 }: AnnotationLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null)
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
-  const [dragging, setDragging] = useState<{ id: string; startX: number; startY: number; annX: number; annY: number } | null>(null)
+  const [penDrawing, setPenDrawing] = useState<{ points: [number, number][] } | null>(null)
+  const [dragging, setDragging] = useState<{
+    ids: string[]
+    startX: number
+    startY: number
+    initialPositions: Map<string, { x: number; y: number }>
+  } | null>(null)
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
   const [isPlaceholderText, setIsPlaceholderText] = useState(false)
@@ -293,14 +303,39 @@ export default function AnnotationLayer({
       const clickedAnnotation = findAnnotationAt(pos, undefined, true)
 
       if (clickedAnnotation) {
-        onSelectAnnotation(clickedAnnotation.id)
-        // Start dragging
+        const isAlreadySelected = selectedAnnotationIds.has(clickedAnnotation.id)
+        const isShiftClick = e.shiftKey
+
+        if (isShiftClick) {
+          // Shift-click: toggle selection
+          onSelectAnnotation(clickedAnnotation.id, true)
+        } else if (!isAlreadySelected) {
+          // Normal click on unselected: select only this one
+          onSelectAnnotation(clickedAnnotation.id, false)
+        }
+        // If already selected without shift, keep current selection (allow dragging group)
+
+        // Determine which annotations to drag
+        const idsToDrag = isShiftClick
+          ? [...selectedAnnotationIds, clickedAnnotation.id].filter((id, i, arr) => arr.indexOf(id) === i)
+          : isAlreadySelected
+            ? [...selectedAnnotationIds]
+            : [clickedAnnotation.id]
+
+        // Build initial positions for all dragged annotations
+        const initialPositions = new Map<string, { x: number; y: number }>()
+        idsToDrag.forEach(id => {
+          const ann = annotations.find(a => a.id === id)
+          if (ann) {
+            initialPositions.set(id, { x: ann.x, y: ann.y })
+          }
+        })
+
         setDragging({
-          id: clickedAnnotation.id,
+          ids: idsToDrag,
           startX: pos.x,
           startY: pos.y,
-          annX: clickedAnnotation.x,
-          annY: clickedAnnotation.y
+          initialPositions
         })
       } else {
         onSelectAnnotation(null)
@@ -319,6 +354,13 @@ export default function AnnotationLayer({
         currentX: pos.x,
         currentY: pos.y
       })
+    }
+
+    // Pen tool - start collecting points
+    if (currentTool === 'pen') {
+      onSelectAnnotation(null)
+      const normalized = toNormalized(pos.x, pos.y)
+      setPenDrawing({ points: [[normalized.x, normalized.y]] })
     }
 
     // Text tool - place text at click position or edit existing text
@@ -424,16 +466,41 @@ export default function AnnotationLayer({
       setDrawing(prev => prev ? { ...prev, currentX: pos.x, currentY: pos.y } : null)
     }
 
-    // Handle dragging
+    // Handle pen drawing - add points as user moves
+    if (penDrawing) {
+      const normalized = toNormalized(pos.x, pos.y)
+      setPenDrawing(prev => prev ? { points: [...prev.points, [normalized.x, normalized.y]] } : null)
+    }
+
+    // Handle dragging multiple annotations
     if (dragging) {
       const deltaX = (pos.x - dragging.startX) / canvasWidth
       const deltaY = (pos.y - dragging.startY) / canvasHeight
-      onUpdateAnnotation(dragging.id, {
-        x: Math.max(0, Math.min(1, dragging.annX + deltaX)),
-        y: Math.max(0, Math.min(1, dragging.annY + deltaY))
+
+      // Update each dragged annotation
+      dragging.ids.forEach(id => {
+        const ann = annotations.find(a => a.id === id)
+        const initialPos = dragging.initialPositions.get(id)
+        if (!ann || !initialPos) return
+
+        const newX = Math.max(0, Math.min(1, initialPos.x + deltaX))
+        const newY = Math.max(0, Math.min(1, initialPos.y + deltaY))
+
+        // For pen annotations, also update all points
+        if (ann.type === 'pen') {
+          const actualDeltaX = newX - ann.x
+          const actualDeltaY = newY - ann.y
+          const newPoints = ann.points.map(([px, py]): [number, number] => [
+            px + actualDeltaX,
+            py + actualDeltaY
+          ])
+          onUpdateAnnotation(id, { x: newX, y: newY, points: newPoints })
+        } else {
+          onUpdateAnnotation(id, { x: newX, y: newY })
+        }
       })
     }
-  }, [drawing, dragging, canvasWidth, canvasHeight, getMousePos, onUpdateAnnotation])
+  }, [drawing, penDrawing, dragging, annotations, canvasWidth, canvasHeight, getMousePos, toNormalized, onUpdateAnnotation])
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
@@ -515,17 +582,45 @@ export default function AnnotationLayer({
       setDrawing(null)
     }
 
+    // Finish pen drawing
+    if (penDrawing && penDrawing.points.length > 1) {
+      // Calculate bounding box from points
+      const xs = penDrawing.points.map(p => p[0])
+      const ys = penDrawing.points.map(p => p[1])
+      const minX = Math.min(...xs)
+      const maxX = Math.max(...xs)
+      const minY = Math.min(...ys)
+      const maxY = Math.max(...ys)
+
+      const annotation: Annotation = {
+        id: crypto.randomUUID(),
+        pageId,
+        type: 'pen',
+        points: penDrawing.points,
+        color: penColor,
+        strokeWidth: penWidth,
+        x: minX,
+        y: minY,
+        width: Math.max(0.01, maxX - minX),
+        height: Math.max(0.01, maxY - minY)
+      }
+      onAddAnnotation(annotation)
+      // Don't auto-select pen - user can select it later if they want to edit
+    }
+    setPenDrawing(null)
+
     // Finish dragging
     if (dragging) {
       setDragging(null)
     }
-  }, [drawing, dragging, currentTool, pageId, canvasWidth, canvasHeight, toNormalized, highlightColor, lineColor, boxColor, boxFillColor, boxThickness, onAddAnnotation, onSelectAnnotation])
+  }, [drawing, penDrawing, dragging, currentTool, pageId, canvasWidth, canvasHeight, toNormalized, highlightColor, lineColor, boxColor, boxFillColor, boxThickness, penColor, penWidth, onAddAnnotation, onSelectAnnotation])
 
   // Handle mouse leave
   const handleMouseLeave = useCallback(() => {
     if (drawing) setDrawing(null)
+    if (penDrawing) setPenDrawing(null)
     if (dragging) setDragging(null)
-  }, [drawing, dragging])
+  }, [drawing, penDrawing, dragging])
 
   // Start editing a text annotation
   const startTextEdit = useCallback((annotation: Annotation) => {
@@ -638,7 +733,7 @@ export default function AnnotationLayer({
   // Render a single annotation
   const renderAnnotation = (annotation: Annotation) => {
     const pos = toPixels(annotation.x, annotation.y)
-    const isSelected = annotation.id === selectedAnnotationId
+    const isSelected = selectedAnnotationIds.has(annotation.id)
     const isBeingEdited = annotation.id === editingTextId
 
     const baseStyle: React.CSSProperties = {
@@ -659,7 +754,7 @@ export default function AnnotationLayer({
             className={`annotation highlight ${isSelected ? 'selected' : ''}`}
             style={{
               ...baseStyle,
-              backgroundColor: HIGHLIGHT_COLORS_TRANSPARENT[annotation.color]
+              backgroundColor: hexToHighlightRgba(annotation.color)
             }}
           />
         )
@@ -723,6 +818,66 @@ export default function AnnotationLayer({
               />
             )}
           </div>
+        )
+      }
+
+      case 'pen': {
+        // Generate SVG path from points
+        const pathPoints = annotation.points
+          .map((p, i) => {
+            const px = p[0] * canvasWidth
+            const py = p[1] * canvasHeight
+            return i === 0 ? `M ${px} ${py}` : `L ${px} ${py}`
+          })
+          .join(' ')
+
+        // Bounding box for selection indicator
+        const penBounds = {
+          x: annotation.x * canvasWidth,
+          y: annotation.y * canvasHeight,
+          width: annotation.width * canvasWidth,
+          height: annotation.height * canvasHeight
+        }
+        const padding = 4 // Padding around the stroke
+
+        return (
+          <svg
+            key={annotation.id}
+            className={`annotation pen ${isSelected ? 'selected' : ''}`}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: canvasWidth,
+              height: canvasHeight,
+              pointerEvents: currentTool === 'select' ? 'auto' : 'none',
+              overflow: 'visible'
+            }}
+          >
+            {/* Selection bounding box */}
+            {isSelected && (
+              <rect
+                x={penBounds.x - padding}
+                y={penBounds.y - padding}
+                width={penBounds.width + padding * 2}
+                height={penBounds.height + padding * 2}
+                fill="none"
+                stroke="#4a90d9"
+                strokeWidth={1.5}
+                strokeDasharray="4 2"
+                pointerEvents="none"
+              />
+            )}
+            <path
+              d={pathPoints}
+              stroke={annotation.color}
+              strokeWidth={annotation.strokeWidth * zoom}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+              pointerEvents="stroke"
+            />
+          </svg>
         )
       }
 
@@ -833,7 +988,7 @@ export default function AnnotationLayer({
             className="drawing-preview highlight"
             style={{
               ...previewStyle,
-              backgroundColor: HIGHLIGHT_COLORS_TRANSPARENT[highlightColor]
+              backgroundColor: hexToHighlightRgba(highlightColor)
             }}
           />
         )
@@ -877,6 +1032,43 @@ export default function AnnotationLayer({
     }
   }
 
+  // Render pen drawing preview
+  const renderPenPreview = () => {
+    if (!penDrawing || penDrawing.points.length < 2) return null
+
+    const pathPoints = penDrawing.points
+      .map((p, i) => {
+        const px = p[0] * canvasWidth
+        const py = p[1] * canvasHeight
+        return i === 0 ? `M ${px} ${py}` : `L ${px} ${py}`
+      })
+      .join(' ')
+
+    return (
+      <svg
+        className="drawing-preview pen"
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: canvasWidth,
+          height: canvasHeight,
+          pointerEvents: 'none',
+          overflow: 'visible'
+        }}
+      >
+        <path
+          d={pathPoints}
+          stroke={penColor}
+          strokeWidth={penWidth * zoom}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    )
+  }
+
   // Cursor style based on current tool
   const getCursorStyle = (): string => {
     switch (currentTool) {
@@ -911,6 +1103,7 @@ export default function AnnotationLayer({
       {/* Render pending text annotation while waiting for parent state update */}
       {pendingTextAnnotation && !annotations.some(a => a.id === pendingTextAnnotation.id) && renderAnnotation(pendingTextAnnotation)}
       {renderDrawingPreview()}
+      {renderPenPreview()}
     </div>
   )
 }

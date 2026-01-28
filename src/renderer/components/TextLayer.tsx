@@ -9,8 +9,8 @@ import {
   type TextSelection,
   type TextBox
 } from '../services/textUtils'
-import type { AnnotationTool, HighlightColor, Annotation } from '../types/annotations'
-import { HIGHLIGHT_COLORS_TRANSPARENT } from '../types/annotations'
+import type { AnnotationTool, Annotation } from '../types/annotations'
+import { hexToHighlightRgba } from '../types/annotations'
 import './TextLayer.css'
 
 interface TextLayerProps {
@@ -21,7 +21,7 @@ interface TextLayerProps {
   height: number
   scale: number
   currentTool: AnnotationTool
-  highlightColor: HighlightColor
+  highlightColor: string
   lineColor: string
   annotations: Annotation[]
   onAddAnnotation: (annotation: Annotation) => void
@@ -642,7 +642,7 @@ export default function TextLayer({
               backgroundColor: showErasePreview
                 ? 'rgba(255, 0, 0, 0.15)'
                 : currentTool === 'highlight'
-                  ? HIGHLIGHT_COLORS_TRANSPARENT[highlightColor]
+                  ? hexToHighlightRgba(highlightColor)
                   : lineColor
             }}
           />

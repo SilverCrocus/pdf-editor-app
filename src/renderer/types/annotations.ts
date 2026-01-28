@@ -5,15 +5,16 @@ export type AnnotationTool =
   | 'underline'
   | 'strikethrough'
   | 'box'
+  | 'pen'
   | 'text'
   | 'eraser'
   | 'grab'
 
-// Colors for highlight tool ('clear' is used to erase highlights)
-export type HighlightColor = 'yellow' | 'green' | 'pink' | 'orange' | 'clear'
-
 // Box thickness options
 export type BoxThickness = 'thin' | 'medium' | 'thick'
+
+// Pen width options (in pixels)
+export type PenWidth = 1 | 2 | 4 | 8
 
 // Available fonts for text annotations
 export type TextFont =
@@ -39,7 +40,7 @@ interface BaseAnnotation {
 // Highlight annotation - semi-transparent rectangle
 export interface HighlightAnnotation extends BaseAnnotation {
   type: 'highlight'
-  color: HighlightColor
+  color: string // hex color
 }
 
 // Underline annotation - horizontal line
@@ -74,6 +75,14 @@ export interface TextAnnotation extends BaseAnnotation {
   underline?: boolean
 }
 
+// Pen annotation - freehand drawing
+export interface PenAnnotation extends BaseAnnotation {
+  type: 'pen'
+  points: [number, number][] // Array of [x, y] normalized coordinates
+  color: string // hex color
+  strokeWidth: PenWidth
+}
+
 // Union of all annotation types
 export type Annotation =
   | HighlightAnnotation
@@ -81,24 +90,7 @@ export type Annotation =
   | StrikethroughAnnotation
   | BoxAnnotation
   | TextAnnotation
-
-// Color mappings - vibrant colors for color picker display
-export const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
-  yellow: 'rgb(255, 235, 59)',
-  green: 'rgb(76, 175, 80)',
-  pink: 'rgb(233, 30, 99)',
-  orange: 'rgb(255, 152, 0)',
-  clear: 'transparent'
-}
-
-// Semi-transparent colors for actual highlight annotations on PDF
-export const HIGHLIGHT_COLORS_TRANSPARENT: Record<HighlightColor, string> = {
-  yellow: 'rgba(255, 235, 59, 0.4)',
-  green: 'rgba(76, 175, 80, 0.4)',
-  pink: 'rgba(233, 30, 99, 0.35)',
-  orange: 'rgba(255, 152, 0, 0.4)',
-  clear: 'rgba(255, 0, 0, 0.15)'  // Light red tint to show eraser selection
-}
+  | PenAnnotation
 
 // Box thickness in pixels (will be scaled by zoom)
 export const BOX_THICKNESS_PX: Record<BoxThickness, number> = {
@@ -107,26 +99,27 @@ export const BOX_THICKNESS_PX: Record<BoxThickness, number> = {
   thick: 4
 }
 
+// Pen width options
+export const PEN_WIDTH_OPTIONS: PenWidth[] = [1, 2, 4, 8]
+
 // Default colors
 export const DEFAULT_LINE_COLOR = '#000000' // Black for underline/strikethrough
 export const DEFAULT_BOX_COLOR = '#ff0000' // Red for box outline
 export const DEFAULT_BOX_FILL_COLOR = 'transparent' // Transparent fill by default
-export const DEFAULT_HIGHLIGHT_COLOR: HighlightColor = 'yellow'
+export const DEFAULT_HIGHLIGHT_COLOR = '#ffeb3b' // Yellow
+export const DEFAULT_PEN_COLOR = '#000000' // Black
+export const DEFAULT_PEN_WIDTH: PenWidth = 2
 export const DEFAULT_TEXT_FONT: TextFont = 'Arial'
 export const DEFAULT_TEXT_SIZE = 12
 export const DEFAULT_BOX_THICKNESS: BoxThickness = 'medium'
 
-// Line/box color options for picker ('clear' is used to erase underlines/strikethroughs)
-export type LineColor = 'black' | 'red' | 'blue' | 'clear'
-
-export const LINE_COLORS: Record<LineColor, string> = {
-  black: '#000000',
-  red: '#ff0000',
-  blue: '#0066cc',
-  clear: 'transparent'
+// Helper to convert hex color to rgba with transparency (for highlights)
+export function hexToHighlightRgba(hex: string, alpha = 0.4): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
-
-export const LINE_COLOR_OPTIONS: LineColor[] = ['black', 'red', 'blue']  // 'clear' added separately in picker
 
 // Font list for UI
 export const AVAILABLE_FONTS: TextFont[] = [

@@ -510,3 +510,67 @@
   flex: 1;
   text-align: left;
 }
+
+/* Width picker (for pen) */
+.width-picker-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #444 !important;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 12px;
+  min-width: 50px;
+}
+
+.width-picker-button:hover {
+  background: #555 !important;
+  border-color: #666;
+}
+
+.width-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #444;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px;
+  z-index: 100;
+  min-width: 80px;
+}
+
+.width-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent !important;
+  border: none;
+  border-radius: 2px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.width-option:hover {
+  background: #555 !important;
+}
+
+.width-option.active {
+  background: #0055aa !important;
+}
+
+.width-preview {
+  width: 20px;
+  border-radius: 1px;
+}
+
+.width-label {
+  flex: 1;
+  text-align: left;
+}

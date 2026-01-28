@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import type { AnnotationTool, HighlightColor, LineColor, TextFont, BoxThickness } from '../types/annotations'
-import { HIGHLIGHT_COLORS, LINE_COLORS, LINE_COLOR_OPTIONS, AVAILABLE_FONTS } from '../types/annotations'
+import type { AnnotationTool, TextFont, BoxThickness, PenWidth } from '../types/annotations'
+import { AVAILABLE_FONTS, PEN_WIDTH_OPTIONS } from '../types/annotations'
+import ColorPicker from './ColorPicker'
 import './Toolbar.css'
 
 // Icon imports
@@ -29,23 +30,9 @@ const ANNOTATION_TOOLS: { id: AnnotationTool; label: string; icon: string; iconS
   { id: 'underline', label: 'Underline', icon: 'U', shortcut: 'U' },
   { id: 'strikethrough', label: 'Strikethrough', icon: 'S', shortcut: 'K' },
   { id: 'box', label: 'Box', icon: '☐', iconSrc: rectangleIcon, shortcut: 'B' },
+  { id: 'pen', label: 'Pen', icon: '✎', shortcut: 'P' },
   { id: 'text', label: 'Text', icon: 'T', shortcut: 'T' }
 ]
-
-const HIGHLIGHT_COLOR_OPTIONS: { id: HighlightColor; label: string }[] = [
-  { id: 'yellow', label: 'Yellow' },
-  { id: 'green', label: 'Green' },
-  { id: 'pink', label: 'Pink' },
-  { id: 'orange', label: 'Orange' },
-  { id: 'clear', label: 'Eraser' }
-]
-
-const LINE_COLOR_LABELS: Record<LineColor, string> = {
-  black: 'Black',
-  red: 'Red',
-  blue: 'Blue',
-  clear: 'Eraser'
-}
 
 const BOX_THICKNESS_OPTIONS: { id: BoxThickness; label: string }[] = [
   { id: 'thin', label: 'Thin' },
@@ -59,15 +46,17 @@ interface ToolbarProps {
   canSave: boolean
   zoom: number
   currentTool: AnnotationTool
-  highlightColor: HighlightColor
+  highlightColor: string
   lineColor: string
   boxColor: string
   boxFillColor: string
   boxThickness: BoxThickness
+  penColor: string
+  penWidth: PenWidth
   textFont: TextFont
   textSize: number
   textColor: string
-  selectedAnnotationType: 'box' | 'text' | null // For showing tool options when annotation is selected
+  selectedAnnotationType: 'box' | 'text' | 'pen' | null
   canUndo: boolean
   canRedo: boolean
   onOpenFiles: () => void
@@ -76,11 +65,13 @@ interface ToolbarProps {
   onSaveAs: () => void
   onZoomChange: (zoom: number) => void
   onToolChange: (tool: AnnotationTool) => void
-  onHighlightColorChange: (color: HighlightColor) => void
+  onHighlightColorChange: (color: string) => void
   onLineColorChange: (color: string) => void
   onBoxColorChange: (color: string) => void
   onBoxFillColorChange: (color: string) => void
   onBoxThicknessChange: (thickness: BoxThickness) => void
+  onPenColorChange: (color: string) => void
+  onPenWidthChange: (width: PenWidth) => void
   onTextFontChange: (font: TextFont) => void
   onTextSizeChange: (size: number) => void
   onTextColorChange: (color: string) => void
@@ -100,6 +91,8 @@ export default function Toolbar({
   boxColor,
   boxFillColor,
   boxThickness,
+  penColor,
+  penWidth,
   textFont,
   textSize,
   textColor,
@@ -117,6 +110,8 @@ export default function Toolbar({
   onBoxColorChange,
   onBoxFillColorChange,
   onBoxThicknessChange,
+  onPenColorChange,
+  onPenWidthChange,
   onTextFontChange,
   onTextSizeChange,
   onTextColorChange,
@@ -125,23 +120,21 @@ export default function Toolbar({
   onDiscardAnnotations
 }: ToolbarProps) {
   const [showZoomDropdown, setShowZoomDropdown] = useState(false)
-  const [showColorDropdown, setShowColorDropdown] = useState(false)
-  const [showLineColorDropdown, setShowLineColorDropdown] = useState(false)
-  const [showBoxColorDropdown, setShowBoxColorDropdown] = useState(false)
-  const [showBoxFillColorDropdown, setShowBoxFillColorDropdown] = useState(false)
   const [showBoxThicknessDropdown, setShowBoxThicknessDropdown] = useState(false)
+  const [showPenWidthDropdown, setShowPenWidthDropdown] = useState(false)
   const [showFontDropdown, setShowFontDropdown] = useState(false)
   const [showSizeDropdown, setShowSizeDropdown] = useState(false)
-  const [showTextColorDropdown, setShowTextColorDropdown] = useState(false)
+  const [boxFillTransparent, setBoxFillTransparent] = useState(boxFillColor === 'transparent')
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const colorDropdownRef = useRef<HTMLDivElement>(null)
-  const lineColorDropdownRef = useRef<HTMLDivElement>(null)
-  const boxColorDropdownRef = useRef<HTMLDivElement>(null)
-  const boxFillColorDropdownRef = useRef<HTMLDivElement>(null)
   const boxThicknessDropdownRef = useRef<HTMLDivElement>(null)
+  const penWidthDropdownRef = useRef<HTMLDivElement>(null)
   const fontDropdownRef = useRef<HTMLDivElement>(null)
   const sizeDropdownRef = useRef<HTMLDivElement>(null)
-  const textColorDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Sync boxFillTransparent state with prop
+  useEffect(() => {
+    setBoxFillTransparent(boxFillColor === 'transparent')
+  }, [boxFillColor])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -149,29 +142,17 @@ export default function Toolbar({
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowZoomDropdown(false)
       }
-      if (colorDropdownRef.current && !colorDropdownRef.current.contains(e.target as Node)) {
-        setShowColorDropdown(false)
-      }
-      if (lineColorDropdownRef.current && !lineColorDropdownRef.current.contains(e.target as Node)) {
-        setShowLineColorDropdown(false)
-      }
-      if (boxColorDropdownRef.current && !boxColorDropdownRef.current.contains(e.target as Node)) {
-        setShowBoxColorDropdown(false)
-      }
-      if (boxFillColorDropdownRef.current && !boxFillColorDropdownRef.current.contains(e.target as Node)) {
-        setShowBoxFillColorDropdown(false)
-      }
       if (boxThicknessDropdownRef.current && !boxThicknessDropdownRef.current.contains(e.target as Node)) {
         setShowBoxThicknessDropdown(false)
+      }
+      if (penWidthDropdownRef.current && !penWidthDropdownRef.current.contains(e.target as Node)) {
+        setShowPenWidthDropdown(false)
       }
       if (fontDropdownRef.current && !fontDropdownRef.current.contains(e.target as Node)) {
         setShowFontDropdown(false)
       }
       if (sizeDropdownRef.current && !sizeDropdownRef.current.contains(e.target as Node)) {
         setShowSizeDropdown(false)
-      }
-      if (textColorDropdownRef.current && !textColorDropdownRef.current.contains(e.target as Node)) {
-        setShowTextColorDropdown(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -199,6 +180,15 @@ export default function Toolbar({
   const handleZoomSelect = (value: number) => {
     onZoomChange(value)
     setShowZoomDropdown(false)
+  }
+
+  const handleBoxFillTransparentChange = (isTransparent: boolean) => {
+    setBoxFillTransparent(isTransparent)
+    if (isTransparent) {
+      onBoxFillColorChange('transparent')
+    } else {
+      onBoxFillColorChange('#ffffff') // Default to white when turning off transparent
+    }
   }
 
   return (
@@ -251,147 +241,36 @@ export default function Toolbar({
         ))}
 
         {currentTool === 'highlight' && (
-          <div className="color-dropdown-container" ref={colorDropdownRef}>
-            <button
-              className={`color-picker-button ${highlightColor === 'clear' ? 'clear-mode' : ''}`}
-              onClick={() => setShowColorDropdown(!showColorDropdown)}
-              title="Highlight color"
-              style={{ backgroundColor: highlightColor === 'clear' ? '#ffffff' : HIGHLIGHT_COLORS[highlightColor] }}
-            >
-              {highlightColor === 'clear' && <span className="eraser-icon">⌫</span>}
-              <span className="dropdown-arrow">▼</span>
-            </button>
-            {showColorDropdown && (
-              <div className="color-dropdown">
-                {HIGHLIGHT_COLOR_OPTIONS.map(color => (
-                  <button
-                    key={color.id}
-                    className={`color-option ${color.id === 'clear' ? 'clear-option' : ''} ${highlightColor === color.id ? 'active' : ''}`}
-                    onClick={() => {
-                      onHighlightColorChange(color.id)
-                      setShowColorDropdown(false)
-                    }}
-                    style={{ backgroundColor: color.id === 'clear' ? '#ffffff' : HIGHLIGHT_COLORS[color.id] }}
-                    title={color.label}
-                  >
-                    {color.id === 'clear' && <span className="eraser-icon">⌫</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <ColorPicker
+            color={highlightColor}
+            onChange={onHighlightColorChange}
+            label="Color"
+          />
         )}
 
         {(currentTool === 'underline' || currentTool === 'strikethrough') && (
-          <div className="color-dropdown-container" ref={lineColorDropdownRef}>
-            <button
-              className={`color-picker-button ${lineColor === 'transparent' ? 'clear-mode' : ''}`}
-              onClick={() => setShowLineColorDropdown(!showLineColorDropdown)}
-              title="Line color"
-              style={{ backgroundColor: lineColor === 'transparent' ? '#ffffff' : lineColor }}
-            >
-              {lineColor === 'transparent' && <span className="eraser-icon">⌫</span>}
-              <span className="dropdown-arrow">▼</span>
-            </button>
-            {showLineColorDropdown && (
-              <div className="color-dropdown">
-                {LINE_COLOR_OPTIONS.map(colorId => (
-                  <button
-                    key={colorId}
-                    className={`color-option ${lineColor === LINE_COLORS[colorId] ? 'active' : ''}`}
-                    onClick={() => {
-                      onLineColorChange(LINE_COLORS[colorId])
-                      setShowLineColorDropdown(false)
-                    }}
-                    style={{ backgroundColor: LINE_COLORS[colorId] }}
-                    title={LINE_COLOR_LABELS[colorId]}
-                  />
-                ))}
-                {/* Clear/eraser option */}
-                <button
-                  className={`color-option clear-option ${lineColor === 'transparent' ? 'active' : ''}`}
-                  onClick={() => {
-                    onLineColorChange('transparent')
-                    setShowLineColorDropdown(false)
-                  }}
-                  style={{ backgroundColor: '#ffffff' }}
-                  title="Eraser"
-                >
-                  <span className="eraser-icon">⌫</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <ColorPicker
+            color={lineColor}
+            onChange={onLineColorChange}
+            label="Color"
+          />
         )}
 
         {(currentTool === 'box' || selectedAnnotationType === 'box') && (
           <>
-            {/* Box outline color picker */}
-            <div className="color-dropdown-container" ref={boxColorDropdownRef}>
-              <button
-                className="color-picker-button box-outline-picker"
-                onClick={() => setShowBoxColorDropdown(!showBoxColorDropdown)}
-                title="Box outline color"
-                style={{ backgroundColor: boxColor }}
-              >
-                <span className="box-outline-icon" />
-                <span className="dropdown-arrow">▼</span>
-              </button>
-              {showBoxColorDropdown && (
-                <div className="color-dropdown">
-                  {LINE_COLOR_OPTIONS.map(colorId => (
-                    <button
-                      key={colorId}
-                      className={`color-option ${boxColor === LINE_COLORS[colorId] ? 'active' : ''}`}
-                      onClick={() => {
-                        onBoxColorChange(LINE_COLORS[colorId])
-                        setShowBoxColorDropdown(false)
-                      }}
-                      style={{ backgroundColor: LINE_COLORS[colorId] }}
-                      title={LINE_COLOR_LABELS[colorId]}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            {/* Box fill color picker */}
-            <div className="color-dropdown-container" ref={boxFillColorDropdownRef}>
-              <button
-                className="color-picker-button box-fill-picker"
-                onClick={() => setShowBoxFillColorDropdown(!showBoxFillColorDropdown)}
-                title="Box fill color"
-                style={{ backgroundColor: boxFillColor === 'transparent' ? '#ffffff' : boxFillColor }}
-              >
-                <span className="box-fill-icon" />
-                <span className="dropdown-arrow">▼</span>
-              </button>
-              {showBoxFillColorDropdown && (
-                <div className="color-dropdown">
-                  <button
-                    className={`color-option transparent-option ${boxFillColor === 'transparent' ? 'active' : ''}`}
-                    onClick={() => {
-                      onBoxFillColorChange('transparent')
-                      setShowBoxFillColorDropdown(false)
-                    }}
-                    title="Transparent (no fill)"
-                  >
-                    <span className="transparent-pattern">∅</span>
-                  </button>
-                  {LINE_COLOR_OPTIONS.map(colorId => (
-                    <button
-                      key={colorId}
-                      className={`color-option ${boxFillColor === LINE_COLORS[colorId] ? 'active' : ''}`}
-                      onClick={() => {
-                        onBoxFillColorChange(LINE_COLORS[colorId])
-                        setShowBoxFillColorDropdown(false)
-                      }}
-                      style={{ backgroundColor: LINE_COLORS[colorId] }}
-                      title={LINE_COLOR_LABELS[colorId]}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <ColorPicker
+              color={boxColor}
+              onChange={onBoxColorChange}
+              label="Border"
+            />
+            <ColorPicker
+              color={boxFillTransparent ? '#ffffff' : boxFillColor}
+              onChange={onBoxFillColorChange}
+              label="Fill"
+              showTransparent
+              isTransparent={boxFillTransparent}
+              onTransparentChange={handleBoxFillTransparentChange}
+            />
             {/* Box thickness dropdown */}
             <div className="color-dropdown-container" ref={boxThicknessDropdownRef}>
               <button
@@ -416,6 +295,47 @@ export default function Toolbar({
                     >
                       <span className="thickness-preview" data-thickness={id}>━</span>
                       <span className="thickness-label">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {(currentTool === 'pen' || selectedAnnotationType === 'pen') && (
+          <>
+            <ColorPicker
+              color={penColor}
+              onChange={onPenColorChange}
+              label="Color"
+            />
+            {/* Pen width dropdown */}
+            <div className="color-dropdown-container" ref={penWidthDropdownRef}>
+              <button
+                className="width-picker-button"
+                onClick={() => setShowPenWidthDropdown(!showPenWidthDropdown)}
+                title="Pen width"
+              >
+                {penWidth}px
+                <span className="dropdown-arrow">▼</span>
+              </button>
+              {showPenWidthDropdown && (
+                <div className="width-dropdown">
+                  {PEN_WIDTH_OPTIONS.map(width => (
+                    <button
+                      key={width}
+                      className={`width-option ${penWidth === width ? 'active' : ''}`}
+                      onClick={() => {
+                        onPenWidthChange(width)
+                        setShowPenWidthDropdown(false)
+                      }}
+                    >
+                      <span
+                        className="width-preview"
+                        style={{ height: width, backgroundColor: penColor }}
+                      />
+                      <span className="width-label">{width}px</span>
                     </button>
                   ))}
                 </div>
@@ -482,33 +402,11 @@ export default function Toolbar({
                 </div>
               )}
             </div>
-            {/* Text color dropdown */}
-            <div className="color-dropdown-container" ref={textColorDropdownRef}>
-              <button
-                className="color-picker-button"
-                onClick={() => setShowTextColorDropdown(!showTextColorDropdown)}
-                title="Text color"
-                style={{ backgroundColor: textColor }}
-              >
-                <span className="dropdown-arrow">▼</span>
-              </button>
-              {showTextColorDropdown && (
-                <div className="color-dropdown">
-                  {LINE_COLOR_OPTIONS.map(colorId => (
-                    <button
-                      key={colorId}
-                      className={`color-option ${textColor === LINE_COLORS[colorId] ? 'active' : ''}`}
-                      onClick={() => {
-                        onTextColorChange(LINE_COLORS[colorId])
-                        setShowTextColorDropdown(false)
-                      }}
-                      style={{ backgroundColor: LINE_COLORS[colorId] }}
-                      title={LINE_COLOR_LABELS[colorId]}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <ColorPicker
+              color={textColor}
+              onChange={onTextColorChange}
+              label="Color"
+            />
           </>
         )}
       </div>
