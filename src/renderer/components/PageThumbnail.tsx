@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { renderPage } from '../services/pdfRenderer'
+import { useEffect, useRef, useState } from 'react'
+import { renderPage, getPageDimensions } from '../services/pdfRenderer'
 import './PageThumbnail.css'
 
 interface PageThumbnailProps {
@@ -8,25 +8,47 @@ interface PageThumbnailProps {
   pageNumber: number
   selected: boolean
   onClick?: () => void
+  thumbnailWidth: number
 }
-
-const THUMBNAIL_SCALE = 0.2
 
 export default function PageThumbnail({
   documentId,
   pageIndex,
   pageNumber,
   selected,
-  onClick
+  onClick,
+  thumbnailWidth
 }: PageThumbnailProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null)
 
+  // Get base page dimensions first
   useEffect(() => {
-    if (!canvasRef.current) return
+    let cancelled = false
+
+    getPageDimensions(documentId, pageIndex)
+      .then((dims) => {
+        if (!cancelled) {
+          setDimensions(dims)
+        }
+      })
+      .catch(console.error)
+
+    return () => {
+      cancelled = true
+    }
+  }, [documentId, pageIndex])
+
+  // Render thumbnail at appropriate scale when dimensions or thumbnailWidth changes
+  useEffect(() => {
+    if (!canvasRef.current || !dimensions) return
 
     let cancelled = false
 
-    renderPage(documentId, pageIndex, THUMBNAIL_SCALE)
+    // Calculate scale to fit width while maintaining aspect ratio
+    const scale = thumbnailWidth / dimensions.width
+
+    renderPage(documentId, pageIndex, scale)
       .then(({ canvas: renderedCanvas, width, height }) => {
         if (cancelled || !canvasRef.current) return
 
@@ -42,7 +64,7 @@ export default function PageThumbnail({
     return () => {
       cancelled = true
     }
-  }, [documentId, pageIndex])
+  }, [documentId, pageIndex, dimensions, thumbnailWidth])
 
   return (
     <div

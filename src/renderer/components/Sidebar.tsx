@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -39,6 +39,7 @@ interface SortableItemProps {
   selected: boolean
   onClick: (e: React.MouseEvent) => void
   onContextMenu: (e: React.MouseEvent) => void
+  thumbnailWidth: number
 }
 
 function SortableItem({
@@ -49,7 +50,8 @@ function SortableItem({
   docName,
   selected,
   onClick,
-  onContextMenu
+  onContextMenu,
+  thumbnailWidth
 }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
@@ -67,11 +69,16 @@ function SortableItem({
           pageIndex={page.originalPageIndex}
           pageNumber={pageNumber}
           selected={selected}
+          thumbnailWidth={thumbnailWidth}
         />
       </div>
     </div>
   )
 }
+
+const MIN_WIDTH = 120
+const MAX_WIDTH = 400
+const DEFAULT_WIDTH = 180
 
 export default function Sidebar({
   documents,
@@ -93,6 +100,47 @@ export default function Sidebar({
   )
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; index: number } | null>(null)
+  const [width, setWidth] = useState(DEFAULT_WIDTH)
+  const [dragWidth, setDragWidth] = useState<number | null>(null) // Visual width during drag only
+  const sidebarRef = useRef<HTMLDivElement>(null)
+
+  const isResizing = dragWidth !== null
+
+  // Calculate thumbnail width (sidebar width minus padding)
+  const thumbnailWidth = width - 32
+
+  // Handle resize drag
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setDragWidth(width)
+  }, [width])
+
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!sidebarRef.current) return
+      const sidebarRect = sidebarRef.current.getBoundingClientRect()
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, e.clientX - sidebarRect.left))
+      setDragWidth(newWidth)
+    }
+
+    const handleMouseUp = () => {
+      // Commit the drag width as the actual width (triggers thumbnail re-render)
+      if (dragWidth !== null) {
+        setWidth(dragWidth)
+      }
+      setDragWidth(null)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, dragWidth])
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -113,55 +161,71 @@ export default function Sidebar({
   const closeContextMenu = () => setContextMenu(null)
 
   if (documents.length === 0) {
-    return <div className="sidebar empty"><p>No documents</p></div>
+    return (
+      <div className="sidebar-container" ref={sidebarRef} style={{ width: dragWidth ?? width }}>
+        <div className="sidebar empty">
+          <p>No documents</p>
+        </div>
+        <div className="resize-handle" onMouseDown={handleResizeStart} />
+      </div>
+    )
   }
 
   let currentDocId = ''
   let pageNumber = 0
 
   return (
-    <div className="sidebar" onClick={closeContextMenu}>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={pages.map(p => p.id)} strategy={verticalListSortingStrategy}>
-          {pages.map((page, index) => {
-            const showHeader = page.documentId !== currentDocId
-            if (showHeader) {
-              currentDocId = page.documentId
-              pageNumber = 0
-            }
-            pageNumber++
-            const doc = documents.find(d => d.id === page.documentId)
+    <div
+      className={`sidebar-container ${isResizing ? 'resizing' : ''}`}
+      ref={sidebarRef}
+      style={{ width: dragWidth ?? width }}
+    >
+      <div className="sidebar" onClick={closeContextMenu}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={pages.map(p => p.id)} strategy={verticalListSortingStrategy}>
+            {pages.map((page, index) => {
+              const showHeader = page.documentId !== currentDocId
+              if (showHeader) {
+                currentDocId = page.documentId
+                pageNumber = 0
+              }
+              pageNumber++
+              const doc = documents.find(d => d.id === page.documentId)
 
-            return (
-              <SortableItem
-                key={page.id}
-                id={page.id}
-                page={page}
-                pageNumber={pageNumber}
-                showHeader={showHeader}
-                docName={doc?.name || ''}
-                selected={selectedPageIndices.has(index)}
-                onClick={(e) => onPageSelect(index, e.shiftKey)}
-                onContextMenu={(e) => handleContextMenu(e, index)}
-              />
-            )
-          })}
-        </SortableContext>
-      </DndContext>
+              return (
+                <SortableItem
+                  key={page.id}
+                  id={page.id}
+                  page={page}
+                  pageNumber={pageNumber}
+                  showHeader={showHeader}
+                  docName={doc?.name || ''}
+                  selected={selectedPageIndices.has(index)}
+                  onClick={(e) => onPageSelect(index, e.shiftKey)}
+                  onContextMenu={(e) => handleContextMenu(e, index)}
+                  thumbnailWidth={thumbnailWidth}
+                />
+              )
+            })}
+          </SortableContext>
+        </DndContext>
 
-      {contextMenu && (
-        <div
-          className="context-menu"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <button onClick={() => { onDuplicatePage(contextMenu.index); closeContextMenu() }}>
-            Duplicate
-          </button>
-          <button onClick={() => { onDeletePage(contextMenu.index); closeContextMenu() }}>
-            Delete
-          </button>
-        </div>
-      )}
+        {contextMenu && (
+          <div
+            className="context-menu"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            <button onClick={() => { onDuplicatePage(contextMenu.index); closeContextMenu() }}>
+              Duplicate
+            </button>
+            <button onClick={() => { onDeletePage(contextMenu.index); closeContextMenu() }}>
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="resize-handle" onMouseDown={handleResizeStart} />
     </div>
   )
 }

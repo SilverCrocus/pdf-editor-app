@@ -1,10 +1,21 @@
+.sidebar-container {
+  position: relative;
+  display: flex;
+  min-width: 120px;
+  max-width: 400px;
+  flex-shrink: 0;
+}
+
+.sidebar-container.resizing {
+  user-select: none;
+}
+
 .sidebar {
-  width: 150px;
-  min-width: 150px;
+  flex: 1;
   background: #252525;
   border-right: 1px solid #3a3a3a;
   overflow-y: auto;
-  padding: 8px;
+  padding: 16px;
 }
 
 .sidebar.empty {
@@ -24,9 +35,7 @@
   letter-spacing: 0.5px;
   border-bottom: 1px solid #3a3a3a;
   margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .context-menu {
@@ -58,4 +67,19 @@
 /* Remove default focus outline from sortable items - selection shown via thumbnail styling */
 .sidebar [tabindex] {
   outline: none;
+}
+
+/* Resize handle */
+.resize-handle {
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.resize-handle:hover,
+.sidebar-container.resizing .resize-handle {
+  background: #0066cc;
 }
