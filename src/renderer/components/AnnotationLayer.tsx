@@ -175,6 +175,17 @@ export default function AnnotationLayer({
     }
   }, [currentTool, editingTextId, editingContent, isPlaceholderText, textareaWidth, canvasWidth, canvasHeight, onUpdateAnnotation, onDeleteAnnotation])
 
+  // Deselect pen annotations when switching tools
+  useEffect(() => {
+    // Check if any selected annotations are pen annotations
+    const hasSelectedPen = annotations.some(
+      ann => ann.type === 'pen' && selectedAnnotationIds.has(ann.id)
+    )
+    if (hasSelectedPen) {
+      onSelectAnnotation(null)
+    }
+  }, [currentTool]) // Only run when tool changes, intentionally not including other deps
+
   // Handle resize mouse move and mouse up on document
   useEffect(() => {
     if (!resizing) return
@@ -363,6 +374,36 @@ export default function AnnotationLayer({
 
   // Check if a point hits an annotation
   const hitTestAnnotation = useCallback((pos: { x: number; y: number }, ann: Annotation): boolean => {
+    // For pen annotations, check proximity to the actual stroke path
+    if (ann.type === 'pen') {
+      const threshold = Math.max(ann.strokeWidth * zoom, 8) + 4 // Add some padding for easier selection
+
+      for (let i = 1; i < ann.points.length; i++) {
+        const p1 = { x: ann.points[i - 1][0] * canvasWidth, y: ann.points[i - 1][1] * canvasHeight }
+        const p2 = { x: ann.points[i][0] * canvasWidth, y: ann.points[i][1] * canvasHeight }
+
+        // Calculate distance from point to line segment
+        const dx = p2.x - p1.x
+        const dy = p2.y - p1.y
+        const lengthSq = dx * dx + dy * dy
+
+        let t = 0
+        if (lengthSq > 0) {
+          t = Math.max(0, Math.min(1, ((pos.x - p1.x) * dx + (pos.y - p1.y) * dy) / lengthSq))
+        }
+
+        const nearestX = p1.x + t * dx
+        const nearestY = p1.y + t * dy
+        const distSq = (pos.x - nearestX) ** 2 + (pos.y - nearestY) ** 2
+
+        if (distSq <= threshold ** 2) {
+          return true
+        }
+      }
+      return false
+    }
+
+    // For other annotations, use bounding box
     const annPos = toPixels(ann.x, ann.y)
     const annWidth = ann.width * canvasWidth
     const annHeight = ann.height * canvasHeight
@@ -372,7 +413,7 @@ export default function AnnotationLayer({
       pos.y >= annPos.y &&
       pos.y <= annPos.y + annHeight
     )
-  }, [toPixels, canvasWidth, canvasHeight])
+  }, [toPixels, canvasWidth, canvasHeight, zoom])
 
   // Find annotation at position, optionally filtered by type
   // excludeTextMarkings: exclude highlight/underline/strikethrough (they can't be selected)
@@ -930,15 +971,6 @@ export default function AnnotationLayer({
           })
           .join(' ')
 
-        // Bounding box for selection indicator
-        const penBounds = {
-          x: annotation.x * canvasWidth,
-          y: annotation.y * canvasHeight,
-          width: annotation.width * canvasWidth,
-          height: annotation.height * canvasHeight
-        }
-        const padding = 4 // Padding around the stroke
-
         const isPendingErase = pendingErase.has(annotation.id)
 
         return (
@@ -956,17 +988,15 @@ export default function AnnotationLayer({
               opacity: isPendingErase ? 0.4 : 1
             }}
           >
-            {/* Selection bounding box */}
+            {/* Selection outline - drawn behind the main stroke */}
             {isSelected && (
-              <rect
-                x={penBounds.x - padding}
-                y={penBounds.y - padding}
-                width={penBounds.width + padding * 2}
-                height={penBounds.height + padding * 2}
-                fill="none"
+              <path
+                d={pathPoints}
                 stroke="#4a90d9"
-                strokeWidth={1.5}
-                strokeDasharray="4 2"
+                strokeWidth={(annotation.strokeWidth * zoom) + 6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
                 pointerEvents="none"
               />
             )}

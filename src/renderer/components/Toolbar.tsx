@@ -235,7 +235,7 @@ export default function Toolbar({
             {tool.iconSrc ? (
               <img src={tool.iconSrc} alt={tool.label} className="tool-icon" />
             ) : (
-              <span style={tool.id === 'pen' ? { display: 'inline-block', transform: 'scaleX(-1)' } : undefined}>
+              <span style={tool.id === 'pen' ? { display: 'inline-block', transform: 'scaleX(-1)', fontSize: '1.3em' } : undefined}>
                 {tool.icon}
               </span>
             )}
@@ -261,17 +261,17 @@ export default function Toolbar({
         {(currentTool === 'box' || selectedAnnotationType === 'box') && (
           <>
             <ColorPicker
-              color={boxColor}
-              onChange={onBoxColorChange}
-              label="Border"
-            />
-            <ColorPicker
               color={boxFillTransparent ? '#ffffff' : boxFillColor}
               onChange={onBoxFillColorChange}
               label="Fill"
               showTransparent
               isTransparent={boxFillTransparent}
               onTransparentChange={handleBoxFillTransparentChange}
+            />
+            <ColorPicker
+              color={boxColor}
+              onChange={onBoxColorChange}
+              label="Border"
             />
             {/* Box thickness dropdown */}
             <div className="color-dropdown-container" ref={boxThicknessDropdownRef}>
