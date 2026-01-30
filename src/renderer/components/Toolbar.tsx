@@ -124,17 +124,11 @@ export default function Toolbar({
   const [showPenWidthDropdown, setShowPenWidthDropdown] = useState(false)
   const [showFontDropdown, setShowFontDropdown] = useState(false)
   const [showSizeDropdown, setShowSizeDropdown] = useState(false)
-  const [boxFillTransparent, setBoxFillTransparent] = useState(boxFillColor === 'transparent')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const boxThicknessDropdownRef = useRef<HTMLDivElement>(null)
   const penWidthDropdownRef = useRef<HTMLDivElement>(null)
   const fontDropdownRef = useRef<HTMLDivElement>(null)
   const sizeDropdownRef = useRef<HTMLDivElement>(null)
-
-  // Sync boxFillTransparent state with prop
-  useEffect(() => {
-    setBoxFillTransparent(boxFillColor === 'transparent')
-  }, [boxFillColor])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -180,15 +174,6 @@ export default function Toolbar({
   const handleZoomSelect = (value: number) => {
     onZoomChange(value)
     setShowZoomDropdown(false)
-  }
-
-  const handleBoxFillTransparentChange = (isTransparent: boolean) => {
-    setBoxFillTransparent(isTransparent)
-    if (isTransparent) {
-      onBoxFillColorChange('transparent')
-    } else {
-      onBoxFillColorChange('#ffffff') // Default to white when turning off transparent
-    }
   }
 
   return (
@@ -261,12 +246,10 @@ export default function Toolbar({
         {(currentTool === 'box' || selectedAnnotationType === 'box') && (
           <>
             <ColorPicker
-              color={boxFillTransparent ? '#ffffff' : boxFillColor}
+              color={boxFillColor}
               onChange={onBoxFillColorChange}
               label="Fill"
-              showTransparent
-              isTransparent={boxFillTransparent}
-              onTransparentChange={handleBoxFillTransparentChange}
+              showAlpha
             />
             <ColorPicker
               color={boxColor}

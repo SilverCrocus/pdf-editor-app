@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type {
   Annotation,
   AnnotationTool,
@@ -177,6 +177,22 @@ export function useAnnotations(): UseAnnotationsReturn {
 
   const canUndo = history.length > 0
   const canRedo = future.length > 0
+
+  // When a box is selected, update tool settings to match its colors
+  useEffect(() => {
+    if (selectedAnnotationIds.size === 1) {
+      const selectedId = [...selectedAnnotationIds][0]
+      const selectedAnnotation = annotations.find(ann => ann.id === selectedId)
+      if (selectedAnnotation && selectedAnnotation.type === 'box') {
+        setToolSettings(prev => ({
+          ...prev,
+          boxColor: selectedAnnotation.color,
+          boxFillColor: selectedAnnotation.fillColor,
+          boxThickness: selectedAnnotation.thickness
+        }))
+      }
+    }
+  }, [selectedAnnotationIds, annotations])
 
   return {
     annotations,

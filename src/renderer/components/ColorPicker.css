@@ -1,4 +1,5 @@
 .color-picker {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -11,6 +12,7 @@
 }
 
 .color-swatch {
+  position: relative;
   width: 24px;
   height: 24px;
   border: 1px solid #ccc;
@@ -26,34 +28,52 @@
 
 .color-input {
   position: absolute;
+  top: 35px;
+  left: 0;
   width: 0;
   height: 0;
   opacity: 0;
   pointer-events: none;
 }
 
-.transparent-toggle {
-  width: 24px;
-  height: 24px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  padding: 3px;
+.alpha-slider-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #999;
-  transition: all 0.15s;
+  gap: 4px;
 }
 
-.transparent-toggle:hover {
-  border-color: #999;
-  color: #666;
+.alpha-slider {
+  width: 50px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, transparent, #888);
+  border-radius: 2px;
+  cursor: pointer;
 }
 
-.transparent-toggle.active {
-  border-color: #4a90d9;
-  background: #e8f0fe;
-  color: #4a90d9;
+.alpha-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.alpha-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.alpha-value {
+  font-size: 11px;
+  color: #aaa;
+  min-width: 32px;
 }

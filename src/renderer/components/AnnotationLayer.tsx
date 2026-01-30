@@ -483,6 +483,15 @@ export default function AnnotationLayer({
       return
     }
 
+    // Box tool - check if clicking on an existing box to select it
+    if (currentTool === 'box') {
+      const clickedBox = findAnnotationAt(pos, 'box')
+      if (clickedBox) {
+        onSelectAnnotation(clickedBox.id, false)
+        return
+      }
+    }
+
     // Start drawing for annotation tools
     if (['highlight', 'underline', 'strikethrough', 'box'].includes(currentTool)) {
       // Deselect any selected annotation when starting to draw
