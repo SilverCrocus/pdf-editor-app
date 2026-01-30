@@ -58,6 +58,19 @@ export function getDocument(id: string): PDFDocumentProxy | undefined {
   return documentCache.get(id)
 }
 
+export async function getPageDimensions(
+  documentId: string,
+  pageIndex: number
+): Promise<{ width: number; height: number }> {
+  const pdf = documentCache.get(documentId)
+  if (!pdf) throw new Error(`Document ${documentId} not loaded`)
+
+  const page = await pdf.getPage(pageIndex + 1) // PDF.js uses 1-based indexing
+  const viewport = page.getViewport({ scale: 1.0 })
+
+  return { width: viewport.width, height: viewport.height }
+}
+
 export function unloadDocument(id: string): void {
   const pdf = documentCache.get(id)
   if (pdf) {

@@ -29,6 +29,7 @@ interface MainViewerProps {
   onDeleteAnnotation: (id: string) => void
   onSelectAnnotation: (id: string | null) => void
   onToolChange: (tool: AnnotationTool) => void
+  onZoomChange: (zoom: number) => void
 }
 
 export default function MainViewer({
@@ -53,13 +54,15 @@ export default function MainViewer({
   onUpdateAnnotation,
   onDeleteAnnotation,
   onSelectAnnotation,
-  onToolChange
+  onToolChange,
+  onZoomChange
 }: MainViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [rendering, setRendering] = useState(false)
   const [hasContent, setHasContent] = useState(false)
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 })
+  const previousContainerWidth = useRef<number>(0)
 
   // Panning state
   const [isPanning, setIsPanning] = useState(false)
@@ -107,6 +110,35 @@ export default function MainViewer({
       cancelled = true
     }
   }, [documentId, pageIndex, zoom])
+
+  // ResizeObserver to scale zoom proportionally when container resizes
+  useEffect(() => {
+    if (!containerRef.current || !documentId) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newWidth = entry.contentRect.width
+        if (newWidth > 0 && previousContainerWidth.current > 0) {
+          // Scale zoom proportionally to container width change
+          const ratio = newWidth / previousContainerWidth.current
+          const newZoom = zoom * ratio
+          // Clamp between reasonable bounds
+          const clampedZoom = Math.min(Math.max(newZoom, 0.25), 3)
+          // Only update if significantly different to avoid loops
+          if (Math.abs(clampedZoom - zoom) > 0.01) {
+            onZoomChange(clampedZoom)
+          }
+        }
+        previousContainerWidth.current = newWidth
+      }
+    })
+
+    resizeObserver.observe(containerRef.current)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [documentId, zoom, onZoomChange])
 
   // Track space key for grab-to-pan mode - switches to grab tool temporarily
   useEffect(() => {

@@ -824,6 +824,7 @@ export default function App() {
           onDeleteAnnotation={wrappedDeleteAnnotation}
           onSelectAnnotation={selectAnnotation}
           onToolChange={setCurrentTool}
+          onZoomChange={setZoom}
         />
       </div>
     </div>
