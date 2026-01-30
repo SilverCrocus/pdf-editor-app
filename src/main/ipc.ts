@@ -1,4 +1,4 @@
-import { ipcMain, dialog } from 'electron'
+import { ipcMain, dialog, BrowserWindow } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'
@@ -19,6 +19,18 @@ export function setupIpcHandlers() {
       return filePaths
     }
     return []
+  })
+
+  ipcMain.handle('close-window', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) {
+      window.close()
+    }
+  })
+
+  ipcMain.handle('quit-app', () => {
+    const { app } = require('electron')
+    app.quit()
   })
   ipcMain.handle('open-file-dialog', async () => {
     const result = await dialog.showOpenDialog({

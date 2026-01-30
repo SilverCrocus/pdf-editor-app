@@ -421,10 +421,17 @@ export default function App() {
         return
       }
 
-      // Ctrl/Cmd + W: Close document
+      // Ctrl/Cmd + W: Close window
       if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
         e.preventDefault()
-        handleCloseDocument()
+        window.electronAPI.closeWindow()
+        return
+      }
+
+      // Ctrl/Cmd + Q: Quit app
+      if ((e.ctrlKey || e.metaKey) && e.key === 'q') {
+        e.preventDefault()
+        window.electronAPI.quitApp()
         return
       }
 

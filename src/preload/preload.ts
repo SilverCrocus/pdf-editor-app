@@ -8,5 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFileDialog: () => ipcRenderer.invoke('save-file-dialog'),
   loadSystemFont: (fontName: string): Promise<Uint8Array | null> =>
     ipcRenderer.invoke('load-system-font', fontName),
-  getInitialFiles: (): Promise<string[]> => ipcRenderer.invoke('get-initial-files')
+  getInitialFiles: (): Promise<string[]> => ipcRenderer.invoke('get-initial-files'),
+  closeWindow: () => ipcRenderer.invoke('close-window'),
+  quitApp: () => ipcRenderer.invoke('quit-app')
 })
