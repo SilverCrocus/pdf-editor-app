@@ -13,6 +13,7 @@
   border-radius: 2px;
   transition: background-color 0.15s ease, outline 0.15s ease;
   text-decoration: none;
+  cursor: default;
   /* Debug: outline: 1px dashed rgba(255, 0, 0, 0.5); */
 }
 
@@ -20,7 +21,7 @@
   background-color: rgba(0, 100, 255, 0.1);
 }
 
-/* Show stronger styling when modifier key is held */
+/* Show hand cursor only when modifier key is held */
 .link-layer.modifier-active .pdf-link {
   cursor: pointer !important;
 }

@@ -2,6 +2,16 @@ import { describe, it, expect, vi } from 'vitest'
 import { renderWithProviders, screen, fireEvent } from '@test/render'
 import Toolbar from './Toolbar'
 
+// Helper to query by data-tooltip attribute (replacing getByTitle)
+const getByTooltip = (tooltip: string) => {
+  const el = document.querySelector(`[data-tooltip="${tooltip}"]`)
+  if (!el) throw new Error(`Unable to find element with data-tooltip: ${tooltip}`)
+  return el as HTMLElement
+}
+const queryByTooltip = (tooltip: string) => {
+  return document.querySelector(`[data-tooltip="${tooltip}"]`) as HTMLElement | null
+}
+
 const defaultProps = {
   hasDocuments: false,
   hasUnsavedChanges: false,
@@ -219,12 +229,12 @@ describe('Toolbar', () => {
     it('renders all annotation tool buttons', () => {
       renderWithProviders(<Toolbar {...defaultProps} hasDocuments={true} />)
 
-      expect(screen.getByTitle('Select (S)')).toBeInTheDocument()
-      expect(screen.getByTitle('Highlight (H)')).toBeInTheDocument()
-      expect(screen.getByTitle('Underline (U)')).toBeInTheDocument()
-      expect(screen.getByTitle('Strikethrough (K)')).toBeInTheDocument()
-      expect(screen.getByTitle('Box (B)')).toBeInTheDocument()
-      expect(screen.getByTitle('Text (T)')).toBeInTheDocument()
+      expect(getByTooltip('Select (S)')).toBeInTheDocument()
+      expect(getByTooltip('Highlight (H)')).toBeInTheDocument()
+      expect(getByTooltip('Underline (U)')).toBeInTheDocument()
+      expect(getByTooltip('Strikethrough (K)')).toBeInTheDocument()
+      expect(getByTooltip('Box (B)')).toBeInTheDocument()
+      expect(getByTooltip('Text (T)')).toBeInTheDocument()
     })
 
     it('marks current tool as active', () => {
@@ -232,8 +242,8 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="highlight" />
       )
 
-      expect(screen.getByTitle('Highlight (H)')).toHaveClass('active')
-      expect(screen.getByTitle('Select (S)')).not.toHaveClass('active')
+      expect(getByTooltip('Highlight (H)')).toHaveClass('active')
+      expect(getByTooltip('Select (S)')).not.toHaveClass('active')
     })
 
     it('calls onToolChange when tool clicked', async () => {
@@ -242,22 +252,22 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} onToolChange={onToolChange} />
       )
 
-      await user.click(screen.getByTitle('Highlight (H)'))
+      await user.click(getByTooltip('Highlight (H)'))
       expect(onToolChange).toHaveBeenCalledWith('highlight')
     })
 
     it('disables annotation tools when no documents', () => {
       renderWithProviders(<Toolbar {...defaultProps} hasDocuments={false} />)
 
-      expect(screen.getByTitle('Highlight (H)')).toBeDisabled()
-      expect(screen.getByTitle('Box (B)')).toBeDisabled()
-      expect(screen.getByTitle('Text (T)')).toBeDisabled()
+      expect(getByTooltip('Highlight (H)')).toBeDisabled()
+      expect(getByTooltip('Box (B)')).toBeDisabled()
+      expect(getByTooltip('Text (T)')).toBeDisabled()
     })
 
     it('keeps select tool enabled without documents', () => {
       renderWithProviders(<Toolbar {...defaultProps} hasDocuments={false} />)
 
-      expect(screen.getByTitle('Select (S)')).not.toBeDisabled()
+      expect(getByTooltip('Select (S)')).not.toBeDisabled()
     })
 
     it('shows color picker when highlight tool is selected', () => {
@@ -275,7 +285,7 @@ describe('Toolbar', () => {
       )
 
       // No color picker visible in select mode without selection
-      expect(screen.queryByTitle('Color')).not.toBeInTheDocument()
+      expect(queryByTooltip('Color')).not.toBeInTheDocument()
     })
   })
 
@@ -285,8 +295,8 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="text" />
       )
 
-      expect(screen.getByTitle('Font')).toBeInTheDocument()
-      expect(screen.getByTitle('Font size')).toBeInTheDocument()
+      expect(getByTooltip('Font')).toBeInTheDocument()
+      expect(getByTooltip('Font size')).toBeInTheDocument()
       // Text color uses ColorPicker with label "Color"
       expect(container.querySelector('.color-picker')).toBeInTheDocument()
     })
@@ -296,8 +306,8 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="select" selectedAnnotationType="text" />
       )
 
-      expect(screen.getByTitle('Font')).toBeInTheDocument()
-      expect(screen.getByTitle('Font size')).toBeInTheDocument()
+      expect(getByTooltip('Font')).toBeInTheDocument()
+      expect(getByTooltip('Font size')).toBeInTheDocument()
       // Text color uses ColorPicker with label "Color"
       expect(container.querySelector('.color-picker')).toBeInTheDocument()
     })
@@ -307,8 +317,8 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="highlight" />
       )
 
-      expect(screen.queryByTitle('Font')).not.toBeInTheDocument()
-      expect(screen.queryByTitle('Font size')).not.toBeInTheDocument()
+      expect(queryByTooltip('Font')).not.toBeInTheDocument()
+      expect(queryByTooltip('Font size')).not.toBeInTheDocument()
     })
 
     it('displays current font', () => {
@@ -332,7 +342,7 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="text" />
       )
 
-      await user.click(screen.getByTitle('Font'))
+      await user.click(getByTooltip('Font'))
 
       expect(screen.getByText('Times New Roman')).toBeInTheDocument()
       expect(screen.getByText('Verdana')).toBeInTheDocument()
@@ -345,7 +355,7 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="text" onTextFontChange={onTextFontChange} />
       )
 
-      await user.click(screen.getByTitle('Font'))
+      await user.click(getByTooltip('Font'))
       await user.click(screen.getByText('Georgia'))
 
       expect(onTextFontChange).toHaveBeenCalledWith('Georgia')
@@ -356,7 +366,7 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="text" />
       )
 
-      await user.click(screen.getByTitle('Font size'))
+      await user.click(getByTooltip('Font size'))
 
       expect(screen.getByText('10')).toBeInTheDocument()
       expect(screen.getByText('14')).toBeInTheDocument()
@@ -370,7 +380,7 @@ describe('Toolbar', () => {
         <Toolbar {...defaultProps} hasDocuments={true} currentTool="text" onTextSizeChange={onTextSizeChange} />
       )
 
-      await user.click(screen.getByTitle('Font size'))
+      await user.click(getByTooltip('Font size'))
       await user.click(screen.getByText('18'))
 
       expect(onTextSizeChange).toHaveBeenCalledWith(18)

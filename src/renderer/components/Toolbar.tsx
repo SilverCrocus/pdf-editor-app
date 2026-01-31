@@ -179,13 +179,13 @@ export default function Toolbar({
   return (
     <div className="toolbar">
       <div className="toolbar-section">
-        <button onClick={onOpenFiles} title="Open PDF (Ctrl+O)">
+        <button onClick={onOpenFiles} data-tooltip="Open PDF (Ctrl+O)" data-tooltip-align="left">
           Open
         </button>
         <button
           onClick={onCloseDocument}
           disabled={!hasDocuments}
-          title="Close document (Ctrl+W)"
+          data-tooltip="Close document (Ctrl+W)"
         >
           Close
         </button>
@@ -193,14 +193,14 @@ export default function Toolbar({
           onClick={onSave}
           disabled={!hasDocuments}
           className={hasUnsavedChanges ? 'has-changes' : ''}
-          title={canSave ? 'Save (Ctrl+S)' : 'Save As (Ctrl+S) - Multiple documents open'}
+          data-tooltip={canSave ? 'Save (Ctrl+S)' : 'Save As (Ctrl+S) - Multiple documents open'}
         >
           Save{hasUnsavedChanges ? '*' : ''}
         </button>
         <button
           onClick={onSaveAs}
           disabled={!hasDocuments}
-          title="Save As (Ctrl+Shift+S)"
+          data-tooltip="Save As (Ctrl+Shift+S)"
         >
           Save As
         </button>
@@ -215,7 +215,7 @@ export default function Toolbar({
             className={`tool-button ${currentTool === tool.id ? 'active' : ''}`}
             onClick={() => onToolChange(tool.id)}
             disabled={!hasDocuments && tool.id !== 'select'}
-            title={`${tool.label} (${tool.shortcut})`}
+            data-tooltip={`${tool.label} (${tool.shortcut})`}
           >
             {tool.iconSrc ? (
               <img src={tool.iconSrc} alt={tool.label} className="tool-icon" />
@@ -261,7 +261,7 @@ export default function Toolbar({
               <button
                 className="thickness-picker-button"
                 onClick={() => setShowBoxThicknessDropdown(!showBoxThicknessDropdown)}
-                title="Border thickness"
+                data-tooltip="Border thickness"
               >
                 <span className="thickness-icon" data-thickness={boxThickness}>━</span>
                 <span className="dropdown-arrow">▼</span>
@@ -276,7 +276,7 @@ export default function Toolbar({
                         onBoxThicknessChange(id)
                         setShowBoxThicknessDropdown(false)
                       }}
-                      title={label}
+                      data-tooltip={label}
                     >
                       <span className="thickness-preview" data-thickness={id}>━</span>
                       <span className="thickness-label">{label}</span>
@@ -300,7 +300,7 @@ export default function Toolbar({
               <button
                 className="width-picker-button"
                 onClick={() => setShowPenWidthDropdown(!showPenWidthDropdown)}
-                title="Pen width"
+                data-tooltip="Pen width"
               >
                 {penWidth}px
                 <span className="dropdown-arrow">▼</span>
@@ -336,7 +336,7 @@ export default function Toolbar({
               <button
                 className="font-picker-button"
                 onClick={() => setShowFontDropdown(!showFontDropdown)}
-                title="Font"
+                data-tooltip="Font"
                 style={{ fontFamily: textFont }}
               >
                 {textFont}
@@ -365,7 +365,7 @@ export default function Toolbar({
               <button
                 className="size-picker-button"
                 onClick={() => setShowSizeDropdown(!showSizeDropdown)}
-                title="Font size"
+                data-tooltip="Font size"
               >
                 {textSize}
                 <span className="dropdown-arrow">▼</span>
@@ -403,7 +403,7 @@ export default function Toolbar({
           onClick={onUndo}
           disabled={!canUndo}
           className="tool-button"
-          title="Undo (Ctrl+Z)"
+          data-tooltip="Undo (Ctrl+Z)"
         >
           <img src={undoIcon} alt="Undo" className="tool-icon" />
         </button>
@@ -411,14 +411,14 @@ export default function Toolbar({
           onClick={onRedo}
           disabled={!canRedo}
           className="tool-button"
-          title="Redo (Ctrl+Shift+Z)"
+          data-tooltip="Redo (Ctrl+Shift+Z)"
         >
           <img src={undoIcon} alt="Redo" className="tool-icon redo-icon" />
         </button>
         <button
           onClick={onDiscardAnnotations}
           disabled={!canUndo}
-          title="Discard all annotations"
+          data-tooltip="Discard all annotations"
         >
           Discard
         </button>
@@ -430,7 +430,7 @@ export default function Toolbar({
         <button
           onClick={handleZoomOut}
           disabled={zoom <= 0.25}
-          title="Zoom Out"
+          data-tooltip="Zoom Out"
         >
           −
         </button>
@@ -439,7 +439,7 @@ export default function Toolbar({
           <button
             className="zoom-display"
             onClick={() => setShowZoomDropdown(!showZoomDropdown)}
-            title="Select zoom level"
+            data-tooltip="Select zoom level"
           >
             {Math.round(zoom * 100)}%
             <span className="dropdown-arrow">▼</span>
@@ -463,7 +463,7 @@ export default function Toolbar({
         <button
           onClick={handleZoomIn}
           disabled={zoom >= 3}
-          title="Zoom In"
+          data-tooltip="Zoom In"
         >
           +
         </button>

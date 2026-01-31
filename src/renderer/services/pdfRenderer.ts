@@ -140,6 +140,9 @@ export async function getPageLinks(
       // Skip if it doesn't look like a real URL (must have a dot and valid TLD-like ending)
       if (!url.includes('.')) continue
 
+      // Skip email addresses
+      if (url.includes('@')) continue
+
       // Add protocol if missing
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'https://' + url
