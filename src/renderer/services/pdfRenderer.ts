@@ -166,8 +166,9 @@ export async function getPageLinks(
       const matchWidth = match[0].length * charWidth
 
       // Convert to viewport coordinates
+      // In PDF coords, y increases upward, so top of text is y + fontSize
       const [vx1, vy1] = viewport.convertToViewportPoint(startX, y)
-      const [vx2, vy2] = viewport.convertToViewportPoint(startX + matchWidth, y - fontSize)
+      const [vx2, vy2] = viewport.convertToViewportPoint(startX + matchWidth, y + fontSize)
 
       const rect = {
         x: Math.min(vx1, vx2),
